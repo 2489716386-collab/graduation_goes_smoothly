@@ -36,7 +36,7 @@ public class Result<T> {
     }
 
     public static Result error() {
-        return new Result(500,"错误，请联系管理员！",null);
+        return new Result(500,"运行错误，请联系管理员！",null);
     }
 
 

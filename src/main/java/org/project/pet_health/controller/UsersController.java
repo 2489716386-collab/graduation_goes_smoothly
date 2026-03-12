@@ -84,6 +84,8 @@ public class UsersController {
      */
     @PostMapping("/save")
     public Result<?> save(@RequestBody Users users) {
+
+        //throw new UserException("这个是自定义异常");
         usersService.saveOrUpdate(users);
         return Result.success();
     }
