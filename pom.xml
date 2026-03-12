@@ -95,6 +95,12 @@
             <version>2.3.32</version> <!-- 兼容 Java 17 + Spring Boot 3.x -->
         </dependency>
 
+        <!-- ========== 数据校验 Validation（适配 Spring Boot 3.2.5 + Java 17） ========== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

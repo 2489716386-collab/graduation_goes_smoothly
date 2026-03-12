@@ -2,6 +2,8 @@ package org.project.pet_health.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.project.pet_health.common.Result;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -24,5 +26,18 @@ public class GlobalExceptionHandler {
     public Result<?> UserExceptionHandler(final UserException e) {
         log.error("错误原因为:"+e.getMessage());
         return Result.error(e.getMessage());
+    }
+
+    /*
+    对入参进行校验
+     */
+
+    @ExceptionHandler(value = MethodArgumentNotValidException.class)
+    @ResponseBody
+    public Result<?> MethodArgumentNotValidExceptionHandler(final MethodArgumentNotValidException e) {
+        FieldError fieldError = e.getBindingResult().getFieldError();
+        String defaultMessage = fieldError.getDefaultMessage();
+        log.error("错误原因为："+defaultMessage);
+        return Result.error(defaultMessage);
     }
 }

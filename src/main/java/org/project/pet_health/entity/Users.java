@@ -3,8 +3,11 @@ package org.project.pet_health.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.validator.constraints.Length;
+import org.project.pet_health.enums.StatusType;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -41,6 +44,8 @@ public class Users implements Serializable {
     @TableField("password")
     private String password;
 
+    @NotBlank(message = "昵称不能为空")
+    @Length(max = 20,message = "昵称长度不能超过30个字！")
     @Schema(description = "昵称")
     @TableField("nickname")
     private String nickname;
@@ -55,7 +60,7 @@ public class Users implements Serializable {
 
     @Schema(description = "状态: 1正常, 0封禁")
     @TableField("status")
-    private Boolean status;
+    private StatusType status;
 
     @Schema(description = "注册时间")
     @TableField(value = "create_time",fill = FieldFill.INSERT)

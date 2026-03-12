@@ -10,6 +10,7 @@ import org.project.pet_health.entity.Users;
 import org.project.pet_health.mapper.UsersMapper;
 import org.project.pet_health.service.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -83,7 +84,7 @@ public class UsersController {
     新增
      */
     @PostMapping("/save")
-    public Result<?> save(@RequestBody Users users) {
+    public Result<?> save(@Validated @RequestBody Users users) {
 
         //throw new UserException("这个是自定义异常");
         usersService.saveOrUpdate(users);

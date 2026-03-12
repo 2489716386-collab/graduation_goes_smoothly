@@ -43,5 +43,7 @@ public class UserBlacklist implements Serializable {
     @TableField(value = "create_time",fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
-
+    @TableField("update_time")
+    @Schema(description = "最后更新时间")
+    private LocalDateTime updateTime;
 }
