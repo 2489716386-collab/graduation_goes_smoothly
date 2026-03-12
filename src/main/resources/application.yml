@@ -1,0 +1,29 @@
+server:
+  servlet:
+    encoding:
+      charset: utf-8
+      force: true
+      enabled: true
+
+spring:
+  application:
+    name: pet_health
+  profiles:
+    active: dev  # 激活dev环境
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml  # Mapper XML 文件路径（如有）
+  type-aliases-package: org.project.pet_health.entity  # 实体类包路径（替换成你的实际路径）
+  configuration:
+    map-underscore-to-camel-case: true  # 下划线自动转驼峰（必开）
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 打印 SQL 日志（开发用）
+  global-config:
+      # 全局配置
+    db-config:
+        # 数据库配置
+      id-type: auto
+
+
+#mybatis-plus:
+#  configuration:
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #开启sql日志
