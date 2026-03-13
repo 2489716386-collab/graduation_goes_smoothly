@@ -1,4 +1,4 @@
-package org.project.pet_health.common;
+package org.project.pet_health.config;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import lombok.extern.slf4j.Slf4j;
