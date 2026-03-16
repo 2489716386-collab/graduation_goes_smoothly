@@ -9,10 +9,12 @@ import org.project.pet_health.dto.UserQuery;
 import org.project.pet_health.entity.Users;
 import org.project.pet_health.mapper.UsersMapper;
 import org.project.pet_health.service.UsersService;
+import org.project.pet_health.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -98,5 +100,29 @@ public class UsersController {
     public Result<?> delete(@RequestBody List<Integer> Ids) {
         usersService.removeByIds(Ids);
         return Result.success();
+    }
+
+    /*
+    登录
+     */
+    @PostMapping("/login")
+    public Result<?> login(@RequestParam String username, @RequestParam String password) {
+        LambdaQueryWrapper<Users> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Users::getUsername, username)
+                .eq(Users::getPassword, password)
+                .last("limit 1");
+        Users user = usersService.getOne(queryWrapper);
+        if (user != null) {
+            //生成jwt
+            String token = JwtUtil.generateToken(user);
+            HashMap<Object, Object> map = new HashMap<>();
+            map.put("token", token);
+            map.put("userId", user.getUserId());
+            map.put("username", user.getUsername());
+            return Result.success(map);
+        }else {
+            return Result.error("请检查用户名/密码是否正确！");
+        }
+
     }
 }

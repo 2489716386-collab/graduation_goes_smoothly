@@ -37,10 +37,12 @@ public class Users implements Serializable {
     private String openid;
 
     @Schema(description = "登录名(管理员用)")
+    @Length(message = "登录名不能为空")
     @TableField("username")
     private String username;
 
     @Schema(description = "密码(管理员用)")
+    @Length(max = 15,message = "密码长度不能超过15个字！")
     @TableField("password")
     private String password;
 
