@@ -41,14 +41,14 @@ public class CommunityPosts implements Serializable {
 
     @Schema(description = "0普通, 1心情分享")
     @TableField("post_type")
-    private Boolean postType;
+    private Integer postType;
 
     @TableField("like_count")
     private Integer likeCount;
 
     @Schema(description = "审核状态: 0审核中, 1已发布, 2拦截")
     @TableField("status")
-    private Boolean status;
+    private Integer status;
 
     @TableField(value = "create_time",fill = FieldFill.INSERT)
     private LocalDateTime createTime;

@@ -1,9 +1,10 @@
 package org.project.pet_health;
 
-import com.baomidou.mybatisplus.core.toolkit.Assert;
 import org.junit.jupiter.api.Test;
 import org.project.pet_health.entity.User;
+import org.project.pet_health.entity.Users;
 import org.project.pet_health.mapper.UserMapper;
+import org.project.pet_health.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -28,4 +29,13 @@ class PetHealthApplicationTests {
             System.out.println("昵称：" + u.getNickname());
         }
     }
+
+    @Test
+    void testJet(){
+        Users users = new Users();
+        users.setUsername("manage");
+        users.setNickname("manage");
+        System.out.println(JwtUtil.generateToken(users));
+    }
 }
+

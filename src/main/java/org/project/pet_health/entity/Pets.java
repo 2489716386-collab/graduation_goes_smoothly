@@ -43,7 +43,7 @@ public class Pets implements Serializable {
 
     @Schema(description = "性别: 0未知, 1公, 2母")
     @TableField("gender")
-    private Boolean gender;
+    private Integer gender;
 
     @Schema(description = "出生日期")
     @TableField("birth_date")
