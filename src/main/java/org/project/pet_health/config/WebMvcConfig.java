@@ -26,7 +26,23 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/v3/api-docs/**",    // 放行 OpenAPI 3 接口数据
                         "/swagger-resources/**",
                         "/swagger-ui/**",
-                        "/error"              // 放行 Spring Boot 的默认错误页面
+                        "/error"   ,           // 放行 Spring Boot 的默认错误页面
+
+                        //TODO
+                        //暂时开放，便于测试
+                        "/admin-logs/**" ,
+                        "/care-knowledge/**",
+                        "/care-plans/**",
+                        "/comments/**",
+                        "/admin/posts/**",
+                        "/health-records/**",
+                        "/likes/**",
+                        "/mood-records/**",
+                        "/notifications/**",
+                        "/pet-breeds/**",
+                        "/pets/**",
+                        "/sensitive-words/**",
+                        "/user-blacklist/**"
                 );
     }
 }
