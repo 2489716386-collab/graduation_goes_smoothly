@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @TableName("community_posts")
-@Tag(name = "CommunityPosts对象", description = "")
+@Tag(name = "社区动态表", description = "")
 public class CommunityPosts implements Serializable {
 
     private static final long serialVersionUID = 1L;

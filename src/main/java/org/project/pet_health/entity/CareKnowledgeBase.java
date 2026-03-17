@@ -22,7 +22,7 @@ import java.io.Serializable;
 @Getter
 @Setter
 @TableName("care_knowledge_base")
-@Tag(name = "CareKnowledgeBase对象", description = "")
+@Tag(name = "养护知识库", description = "")
 public class CareKnowledgeBase implements Serializable {
 
     private static final long serialVersionUID = 1L;

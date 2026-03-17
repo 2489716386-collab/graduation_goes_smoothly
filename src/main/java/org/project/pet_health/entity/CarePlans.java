@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @TableName("care_plans")
-@Tag(name = "CarePlans对象", description = "")
+@Tag(name = "养护计划", description = "")
 public class CarePlans implements Serializable {
 
     private static final long serialVersionUID = 1L;

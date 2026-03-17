@@ -21,7 +21,7 @@ import java.io.Serializable;
 @Getter
 @Setter
 @TableName("likes")
-@Tag(name = "Likes对象", description = "")
+@Tag(name = "动态互动（点赞）", description = "")
 public class Likes implements Serializable {
 
     private static final long serialVersionUID = 1L;

@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @TableName("user_blacklist")
-@Tag(name = "UserBlacklist对象", description = "")
+@Tag(name = "用户黑名单表", description = "")
 public class UserBlacklist implements Serializable {
 
     private static final long serialVersionUID = 1L;

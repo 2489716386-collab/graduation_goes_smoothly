@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @TableName("pets")
-@Tag(name = "Pets对象", description = "")
+@Tag(name = "宠物档案表", description = "")
 public class Pets implements Serializable {
 
     private static final long serialVersionUID = 1L;

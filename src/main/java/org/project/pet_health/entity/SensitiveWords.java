@@ -21,7 +21,7 @@ import java.io.Serializable;
 @Getter
 @Setter
 @TableName("sensitive_words")
-@Tag(name = "SensitiveWords对象", description = "")
+@Tag(name = "敏感词库", description = "")
 public class SensitiveWords implements Serializable {
 
     private static final long serialVersionUID = 1L;

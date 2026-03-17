@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @TableName("admin_logs")
-@Tag(name = "AdminLogs对象", description = "")
+@Tag(name = "管理员日志", description = "")
 public class AdminLogs implements Serializable {
 
     private static final long serialVersionUID = 1L;

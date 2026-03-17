@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @TableName("users")
-@Tag(name = "Users对象", description = "")
+@Tag(name = "用户表", description = "")
 public class Users implements Serializable {
 
     private static final long serialVersionUID = 1L;

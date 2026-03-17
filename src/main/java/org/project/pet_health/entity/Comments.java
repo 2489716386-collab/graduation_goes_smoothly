@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @TableName("comments")
-@Tag(name = "Comments对象", description = "")
+@Tag(name = "动态互动（评论）", description = "")
 public class Comments implements Serializable {
 
     private static final long serialVersionUID = 1L;

@@ -22,7 +22,7 @@ import java.io.Serializable;
 @Getter
 @Setter
 @TableName("pet_breeds")
-@Tag(name = "PetBreeds对象", description = "")
+@Tag(name = " 宠物品种词典表", description = "")
 public class PetBreeds implements Serializable {
 
     private static final long serialVersionUID = 1L;

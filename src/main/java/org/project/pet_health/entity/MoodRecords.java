@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @TableName("mood_records")
-@Tag(name = "MoodRecords对象", description = "")
+@Tag(name = "宠物心情记录表", description = "")
 public class MoodRecords implements Serializable {
 
     private static final long serialVersionUID = 1L;
