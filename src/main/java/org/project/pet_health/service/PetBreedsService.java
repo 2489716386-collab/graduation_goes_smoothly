@@ -1,16 +1,11 @@
 package org.project.pet_health.service;
 
-import org.project.pet_health.entity.PetBreeds;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.project.pet_health.entity.PetBreeds;
+import java.util.List;
 
-/**
- * <p>
- *  服务类
- * </p>
- *
- * @author weiling
- * @since 2026-03-11
- */
 public interface PetBreedsService extends IService<PetBreeds> {
-
+    Page<PetBreeds> getAdminPage(Integer pageNum, Integer pageSize, Integer species, String initials);
+    void batchDeleteBreeds(List<Integer> ids);
 }

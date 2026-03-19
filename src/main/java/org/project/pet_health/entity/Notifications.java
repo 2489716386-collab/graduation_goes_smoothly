@@ -38,8 +38,8 @@ public class Notifications implements Serializable {
     @TableField("content")
     private String content;
 
-    @TableField("is_read")
-    private Boolean isRead;
+    @TableField("notice_type")
+    private Boolean NoticeType;
 
     @TableField(value = "create_time",fill = FieldFill.INSERT)
     private LocalDateTime createTime;

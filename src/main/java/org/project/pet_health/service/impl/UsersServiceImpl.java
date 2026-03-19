@@ -1,20 +1,64 @@
 package org.project.pet_health.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.project.pet_health.dto.UserBanDTO;
+import org.project.pet_health.entity.UserBlacklist;
 import org.project.pet_health.entity.Users;
+import org.project.pet_health.enums.StatusType;
+import org.project.pet_health.mapper.UserBlacklistMapper;
 import org.project.pet_health.mapper.UsersMapper;
 import org.project.pet_health.service.UsersService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
-/**
- * <p>
- *  服务实现类
- * </p>
- *
- * @author weiling
- * @since 2026-03-11
- */
+import java.time.LocalDateTime;
+
 @Service
 public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements UsersService {
 
+    // 注入黑名单的 Mapper，防止 Service 循环注入
+    @Autowired
+    private UserBlacklistMapper userBlacklistMapper;
+
+    @Override
+    public Page<Users> getAdminUsersPage(Integer pageNum, Integer pageSize, String nickname, Long userId) {
+        Page<Users> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<Users> wrapper = new LambdaQueryWrapper<>();
+
+        // 模糊搜索昵称
+        if (StringUtils.hasText(nickname)) {
+            wrapper.like(Users::getNickname, nickname);
+        }
+        // 精确匹配用户ID
+        if (userId != null) {
+            wrapper.eq(Users::getUserId, userId);
+        }
+        wrapper.orderByDesc(Users::getCreateTime);
+
+        return this.page(page, wrapper);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class) // 开启事务，保证两步操作要么全成功，要么全失败
+    public void banUser(UserBanDTO banDTO) {
+        // 1. 将用户表状态改为 0 (封禁)
+        Users user = new Users();
+        user.setUserId(banDTO.getUserId());
+        user.setStatus(StatusType.No);
+        this.updateById(user);
+
+        // 2. 将用户加入黑名单表
+        UserBlacklist blacklist = new UserBlacklist();
+        blacklist.setUserId(banDTO.getUserId());
+        blacklist.setReason(banDTO.getReason());
+        // 计算过期时间：当前时间 + 前端传来的天数
+        blacklist.setExpireTime(LocalDateTime.now().plusDays(banDTO.getBanDays()));
+        // createTime 字段通常有自动填充，不用手动 set
+
+        userBlacklistMapper.insert(blacklist);
+    }
 }

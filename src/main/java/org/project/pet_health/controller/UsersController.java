@@ -1,128 +1,36 @@
 package org.project.pet_health.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.project.pet_health.common.Result;
-import org.project.pet_health.dto.UserQuery;
-import org.project.pet_health.entity.Users;
-import org.project.pet_health.mapper.UsersMapper;
+import org.project.pet_health.common.annotation.LogAction;
+import org.project.pet_health.dto.UserBanDTO;
 import org.project.pet_health.service.UsersService;
-import org.project.pet_health.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.List;
-
-/**
- * <p>
- *  前端控制器
- * </p>
- *
- * @author weiling
- * @since 2026-03-11
- */
 @RestController
 @RequestMapping("/users")
-@Tag(name = "用户列表")
+@Tag(name = "用户管理")
 public class UsersController {
-
-    @Autowired
-    private UsersMapper usersMapper;
 
     @Autowired
     private UsersService usersService;
 
-    /*
-    分页查询
-     */
-
-    @PostMapping("/page")
-    public Result<?> findPage(@RequestBody UserQuery userQuery) {
-
-        /*
-        降序排列
-         */
-        LambdaQueryWrapper<Users> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.orderByDesc(Users::getUserId);
-
-        /*
-        模糊查询
-         */
-        if(!"".equals(userQuery.getNickname()) && userQuery.getNickname() != null){
-            queryWrapper.like(Users::getNickname, userQuery.getNickname());
-        }
-
-        Page<Users> page = usersService.page(
-                new Page<>(
-                        userQuery.getPageNumber(),
-                        userQuery.getPageSize()
-                ),
-                queryWrapper
-        );
-        return Result.success(page);
+    @GetMapping("/admin/page")
+    @Operation(summary = "【后台】分页条件查询所有用户")
+    public Result adminPage(@RequestParam(defaultValue = "1") Integer pageNum,
+                            @RequestParam(defaultValue = "10") Integer pageSize,
+                            @RequestParam(required = false) String nickname,
+                            @RequestParam(required = false) Long userId) {
+        return Result.success(usersService.getAdminUsersPage(pageNum, pageSize, nickname, userId));
     }
 
-    @GetMapping("/query")
-    @Operation(summary = "查询")
-     public List<Users> query() {
-        System.out.println("----- 开始查询所有用户 -----");
-        List<Users> userList = usersMapper.selectList(null);
-        System.out.println("共查询到 " + userList.size() + " 条数据");
-        userList.forEach(System.out::println);
-
-        for (Users u : userList) {
-            System.out.println("用户ID：" + u.getUserId());
-            System.out.println("用户名：" + u.getUsername());
-            System.out.println("昵称：" + u.getNickname());
-        }
-        return userList;
-    }
-
-    /*
-    新增
-     */
-    @PostMapping("/save")
-    public Result<?> save(@Validated @RequestBody Users users) {
-
-        //throw new UserException("这个是自定义异常");
-        usersService.saveOrUpdate(users);
-        return Result.success();
-    }
-
-    /*
-    批量删除
-     */
-    @PostMapping("/delete")
-    public Result<?> delete(@RequestBody List<Integer> Ids) {
-        usersService.removeByIds(Ids);
-        return Result.success();
-    }
-
-    /*
-    登录
-     */
-    @PostMapping("/login")
-    public Result<?> login(@RequestParam String username, @RequestParam String password) {
-        LambdaQueryWrapper<Users> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Users::getUsername, username)
-                .eq(Users::getPassword, password)
-                .last("limit 1");
-        Users user = usersService.getOne(queryWrapper);
-        if (user != null) {
-            //生成jwt
-            String token = JwtUtil.generateToken(user);
-            HashMap<Object, Object> map = new HashMap<>();
-            map.put("token", token);
-            map.put("userId", user.getUserId());
-            map.put("username", user.getUsername());
-            return Result.success(map);
-        }else {
-            return Result.error("请检查用户名/密码是否正确！");
-        }
-
+    @PostMapping("/admin/ban")
+    @Operation(summary = "【后台】封禁用户并加入黑名单")
+    @LogAction("封禁了用户，用户ID: #{#banDTO.userId}")
+    public Result banUser(@RequestBody UserBanDTO banDTO) {
+        usersService.banUser(banDTO);
+        return Result.success("该用户已被成功封禁！");
     }
 }
