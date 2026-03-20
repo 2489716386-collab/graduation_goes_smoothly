@@ -81,7 +81,7 @@ public class Comments implements Serializable {
      */
     @TableField("status")
     @Schema(description = "审核状态：0-待审核，1-已发布，2-违规拦截")
-    private Boolean status;
+    private Integer status;
 
     /**
      * 评论发布时间

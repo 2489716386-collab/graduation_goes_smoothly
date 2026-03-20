@@ -1,16 +1,14 @@
 package org.project.pet_health.service;
 
-import org.project.pet_health.entity.CommunityPosts;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.project.pet_health.entity.CommunityPosts;
+import java.util.List;
 
-/**
- * <p>
- *  服务类
- * </p>
- *
- * @author weiling
- * @since 2026-03-11
- */
 public interface CommunityPostsService extends IService<CommunityPosts> {
+    // 后台分页条件查询动态 (不显示 media_urls)
+    Page<CommunityPosts> getAdminPage(Integer pageNum, Integer pageSize, Integer postType, Integer status, String content, String startDate, String endDate);
 
+    // 批量审核动态 (联动更新举报记录状态)
+    void batchAuditPosts(List<Long> postIds, Integer status);
 }

@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.project.pet_health.enums.ReportStatus;
+import org.project.pet_health.enums.TargetType;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -56,7 +58,7 @@ public class Reports implements Serializable {
      */
     @TableField("target_type")
     @Schema(description = "举报类型：post-动态，comment-评论")
-    private String targetType;
+    private TargetType targetType;
 
     /**
      * 举报理由（违规、低俗、虚假信息等）
@@ -70,7 +72,7 @@ public class Reports implements Serializable {
      */
     @TableField("status")
     @Schema(description = "处理状态：0-待处理，1-已处理-忽略，2-已处理-删除内容")
-    private Boolean status;
+    private ReportStatus status;;
 
     /**
      * 举报时间

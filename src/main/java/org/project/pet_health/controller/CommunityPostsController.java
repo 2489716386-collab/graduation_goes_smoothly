@@ -1,51 +1,45 @@
 package org.project.pet_health.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.project.pet_health.common.Result;
-import org.project.pet_health.entity.CommunityPosts;
+import org.project.pet_health.common.annotation.LogAction;
 import org.project.pet_health.service.CommunityPostsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/admin/posts")
-@Tag(name = "PC后台-社区内容审核")
+@RequestMapping("/community-posts")
+@Tag(name = "PC后台-社区动态审核管理")
 public class CommunityPostsController {
 
     @Autowired
     private CommunityPostsService postsService;
 
-    @GetMapping("/page")
-    @Operation(summary = "分页查询社区帖子(支持按状态筛选)")
-    public Result page(@RequestParam(defaultValue = "1") Integer pageNum,
-                       @RequestParam(defaultValue = "10") Integer pageSize,
-                       @RequestParam(required = false) Integer status) { // 状态：0审核中, 1已发布, 2拦截
-        Page<CommunityPosts> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<CommunityPosts> wrapper = new LambdaQueryWrapper<>();
+    @GetMapping("/admin/page")
+    @Operation(summary = "后台分页条件查询社区动态(不含图片URL)")
+    public Result adminPage(@RequestParam(defaultValue = "1") Integer pageNum,
+                            @RequestParam(defaultValue = "10") Integer pageSize,
+                            @RequestParam(required = false) Integer postType,
+                            @RequestParam(required = false) Integer status,
+                            @RequestParam(required = false) String content,
+                            @RequestParam(required = false) String startDate,
+                            @RequestParam(required = false) String endDate) {
 
-        if (status != null) {
-            wrapper.eq(CommunityPosts::getStatus, status);
-        }
-        wrapper.orderByDesc(CommunityPosts::getCreateTime);
-
-        return Result.success(postsService.page(page, wrapper));
+        // Controller 极简，直接调用 Service 获取组装好的分页数据
+        return Result.success(postsService.getAdminPage(pageNum, pageSize, postType, status, content, startDate, endDate));
     }
 
-    @PutMapping("/audit")
-    @Operation(summary = "审核帖子(修改状态)")
-    public Result audit(@RequestBody CommunityPosts post) {
-        // 前端只需传入 postId 和要修改成的 status
-        postsService.updateById(post);
-        return Result.success("审核操作成功");
-    }
+    @PostMapping("/admin/audit")
+    @Operation(summary = "批量审核动态(修改状态并联动举报表)")
+    // 使用 SpEL 表达式动态记录将帖子改成了什么状态
+    @LogAction("批量审核了社区动态，目标状态为: #{#status}")
+    public Result batchAudit(@RequestParam Integer status, @RequestBody List<Long> postIds) {
 
-    @DeleteMapping("/delete/{id}")
-    @Operation(summary = "物理删除违规帖子")
-    public Result delete(@PathVariable Long id) {
-        postsService.removeById(id);
-        return Result.success("删除成功");
+        // 核心跨表修改逻辑已下沉到 Service 层的 batchAuditPosts 方法中
+        postsService.batchAuditPosts(postIds, status);
+        return Result.success("批量审核动态成功");
     }
 }
