@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.project.pet_health.entity.Comments;
 import org.project.pet_health.entity.Reports;
+import org.project.pet_health.enums.AuditStatus;
 import org.project.pet_health.enums.ReportStatus;
 import org.project.pet_health.enums.TargetType;
 import org.project.pet_health.mapper.CommentsMapper;
@@ -25,7 +26,7 @@ public class CommentsServiceImpl extends ServiceImpl<CommentsMapper, Comments> i
     private ReportsMapper reportsMapper;
 
     @Override
-    public Page<Comments> getAdminPage(Integer pageNum, Integer pageSize, Integer status, String content, String startDate, String endDate) {
+    public Page<Comments> getAdminPage(Integer pageNum, Integer pageSize,AuditStatus status, String content, String startDate, String endDate) {
         LambdaQueryWrapper<Comments> wrapper = new LambdaQueryWrapper<>();
         if (status != null) wrapper.eq(Comments::getStatus, status);
         if (StringUtils.hasText(content)) wrapper.like(Comments::getContent, content);
@@ -38,7 +39,7 @@ public class CommentsServiceImpl extends ServiceImpl<CommentsMapper, Comments> i
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void batchAuditComments(List<Long> commentIds, Integer status) {
+    public void batchAuditComments(List<Long> commentIds, AuditStatus status) {
         if (commentIds == null || commentIds.isEmpty()) return;
 
         this.update(new LambdaUpdateWrapper<Comments>()
@@ -47,8 +48,8 @@ public class CommentsServiceImpl extends ServiceImpl<CommentsMapper, Comments> i
 
         // 联动更新举报状态
         ReportStatus reportStatus = null;;
-        if (status == 2) reportStatus = ReportStatus.DELETED;
-        else if (status == 1) reportStatus = ReportStatus.IGNORED;
+        if (AuditStatus.REJECTED.equals(status)) reportStatus = ReportStatus.DELETED;
+        else if (AuditStatus.APPROVED.equals(status)) reportStatus = ReportStatus.IGNORED;
 
         if (reportStatus != null) {
             reportsMapper.update(null, new LambdaUpdateWrapper<Reports>()

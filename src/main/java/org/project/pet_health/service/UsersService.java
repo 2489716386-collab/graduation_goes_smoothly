@@ -11,4 +11,8 @@ public interface UsersService extends IService<Users> {
 
     // 执行封禁操作 (跨表事务)
     void banUser(UserBanDTO banDTO);
+
+    //用户端操作
+    Users getUserProfile(Long userId);
+    void updateUserProfile(Users user, Long userId);
 }

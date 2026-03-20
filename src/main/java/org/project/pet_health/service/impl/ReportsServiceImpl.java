@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.project.pet_health.entity.Comments;
 import org.project.pet_health.entity.CommunityPosts;
 import org.project.pet_health.entity.Reports;
+import org.project.pet_health.enums.AuditStatus;
 import org.project.pet_health.enums.ReportStatus;
 import org.project.pet_health.enums.TargetType;
 import org.project.pet_health.mapper.CommentsMapper;
@@ -51,7 +52,7 @@ public class ReportsServiceImpl extends ServiceImpl<ReportsMapper, Reports> impl
             if (post != null) {
                 post.setReportCount(post.getReportCount() + 1);
                 if (post.getReportCount() >= 5) {
-                    post.setStatus(0); // 帖子变为待审核
+                    post.setStatus(AuditStatus.PENDING); // 帖子变为待审核
                 }
                 postsMapper.updateById(post);
             }
@@ -60,7 +61,7 @@ public class ReportsServiceImpl extends ServiceImpl<ReportsMapper, Reports> impl
             if (comment != null) {
                 comment.setReportCount(comment.getReportCount() + 1);
                 if (comment.getReportCount() >= 5) {
-                    comment.setStatus(0); // 评论变为待审核
+                    comment.setStatus(AuditStatus.PENDING); // 评论变为待审核
                 }
                 commentsMapper.updateById(comment);
             }

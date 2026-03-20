@@ -1,7 +1,9 @@
 package org.project.pet_health.service;
 
-import org.project.pet_health.entity.Pets;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.project.pet_health.entity.Pets;
+
+import java.util.List;
 
 /**
  * <p>
@@ -12,5 +14,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @since 2026-03-11
  */
 public interface PetsService extends IService<Pets> {
-
+    List<Pets> getMyPets(Long userId);
+    void addMyPet(Pets pet, Long userId);
+    void updateMyPet(Pets pet, Long userId);
+    void deleteMyPet(Long petId, Long userId);
 }

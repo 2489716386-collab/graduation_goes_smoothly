@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
 import lombok.Setter;
+import org.project.pet_health.enums.AuditStatus;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -48,11 +49,15 @@ public class CommunityPosts implements Serializable {
 
     @Schema(description = "审核状态: 0审核中, 1已发布, 2拦截")
     @TableField("status")
-    private Integer status;
+    private AuditStatus status;
 
     @Schema(description = "被举报次数")
     @TableField("report_count")
     private Integer ReportCount;
+
+    @Schema(description = "评论次数")
+    @TableField("comment_count")
+    private Integer CommentCount;
 
     @TableField(value = "create_time",fill = FieldFill.INSERT)
     private LocalDateTime createTime;

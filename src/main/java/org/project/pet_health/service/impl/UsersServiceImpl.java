@@ -61,4 +61,18 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
         userBlacklistMapper.insert(blacklist);
     }
+
+    @Override
+    public Users getUserProfile(Long userId) {
+        return this.getById(userId);
+    }
+
+    @Override
+    public void updateUserProfile(Users user, Long userId) {
+        // 为了安全，强行把 ID 设置为当前登录用户的 ID，防止修改别人资料
+        user.setUserId(userId);
+        // 限制用户不能自己修改 status（封禁状态）、role 等敏感字段
+        user.setStatus(null);
+        this.updateById(user);
+    }
 }
