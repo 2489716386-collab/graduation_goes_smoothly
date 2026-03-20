@@ -50,6 +50,10 @@ public class CommunityPosts implements Serializable {
     @TableField("status")
     private Integer status;
 
+    @Schema(description = "被举报次数")
+    @TableField("report_count")
+    private Integer ReportCount;
+
     @TableField(value = "create_time",fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 }
