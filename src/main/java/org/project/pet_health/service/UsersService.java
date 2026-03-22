@@ -2,6 +2,7 @@ package org.project.pet_health.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.project.pet_health.dto.AdminLoginDTO;
 import org.project.pet_health.dto.UserBanDTO;
 import org.project.pet_health.entity.Users;
 
@@ -15,4 +16,7 @@ public interface UsersService extends IService<Users> {
     //用户端操作
     Users getUserProfile(Long userId);
     void updateUserProfile(Users user, Long userId);
+
+    // PC端管理员账号密码登录
+    String adminLogin(AdminLoginDTO loginDTO);
 }

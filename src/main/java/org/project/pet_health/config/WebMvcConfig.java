@@ -42,6 +42,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/pet-breeds/**",
                         "/pets/**",
                         "/sensitive-words/**",
+                        "/auth/**",
                         "/user-blacklist/**"
                 );
     }

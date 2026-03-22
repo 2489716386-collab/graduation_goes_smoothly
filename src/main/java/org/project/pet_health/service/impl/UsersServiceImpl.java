@@ -3,13 +3,16 @@ package org.project.pet_health.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.project.pet_health.dto.AdminLoginDTO;
 import org.project.pet_health.dto.UserBanDTO;
 import org.project.pet_health.entity.UserBlacklist;
 import org.project.pet_health.entity.Users;
 import org.project.pet_health.enums.StatusType;
+import org.project.pet_health.exception.UserException;
 import org.project.pet_health.mapper.UserBlacklistMapper;
 import org.project.pet_health.mapper.UsersMapper;
 import org.project.pet_health.service.UsersService;
+import org.project.pet_health.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,5 +77,38 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         // 限制用户不能自己修改 status（封禁状态）、role 等敏感字段
         user.setStatus(null);
         this.updateById(user);
+    }
+
+    @Override
+    public String adminLogin(AdminLoginDTO loginDTO) {
+        // 1. 根据用户名查询用户
+        Users admin = this.getOne(new LambdaQueryWrapper<Users>()
+                .eq(Users::getUsername, loginDTO.getUsername())
+                .last("limit 1")
+        );
+
+        // 2. 账号是否存在
+        if (admin == null) {
+            // 【优化】换成自定义的 UserException
+            throw new UserException("管理员账号不存在！");
+        }
+
+        // 3. 校验密码
+        if (!loginDTO.getPassword().equals(admin.getPassword())) {
+            throw new UserException("密码错误！");
+        }
+
+        // 4. 校验权限
+        if (admin.getRole().equals("user")) {
+            throw new UserException("无权访问：该账号不是管理员账号！");
+        }
+
+        // 5. 校验账号状态是否被封禁
+        if (admin.getStatus() != null && admin.getStatus().equals(StatusType.No)) {
+            throw new UserException("该管理员账号已被冻结！");
+        }
+
+        // 6. 校验全数通过，签发 Token
+        return JwtUtil.generateToken(admin);
     }
 }
