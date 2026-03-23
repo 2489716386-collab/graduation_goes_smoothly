@@ -59,7 +59,13 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         blacklist.setUserId(banDTO.getUserId());
         blacklist.setReason(banDTO.getReason());
         // 计算过期时间：当前时间 + 前端传来的天数
-        blacklist.setExpireTime(LocalDateTime.now().plusDays(banDTO.getBanDays()));
+        // 修复：增加非空校验，防止 NPE
+        if (banDTO.getBanDays() != null) {
+            blacklist.setExpireTime(LocalDateTime.now().plusDays(banDTO.getBanDays()));
+        } else {
+            // 默认封禁 7 天，或者抛出自定义异常提示参数错误
+            blacklist.setExpireTime(LocalDateTime.now().plusDays(7));
+        }
         // createTime 字段通常有自动填充，不用手动 set
 
         userBlacklistMapper.insert(blacklist);

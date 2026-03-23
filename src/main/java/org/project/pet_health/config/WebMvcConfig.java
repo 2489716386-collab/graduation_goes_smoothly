@@ -30,6 +30,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
                         //TODO
                         //暂时开放，便于测试
+                        "/users/**",
                         "/admin-logs/**" ,
                         "/care-knowledge/**",
                         "/care-plans/**",
