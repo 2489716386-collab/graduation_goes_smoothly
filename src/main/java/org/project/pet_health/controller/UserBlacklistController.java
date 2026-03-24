@@ -29,7 +29,7 @@ public class UserBlacklistController {
 
     @PostMapping("/unban/batch")
     @Operation(summary = "批量解封用户(移出黑名单)")
-    @LogAction("解封了用户，用户ID: #{#banDTO.userId}")
+    @LogAction("解封了用户，用户ID: #{#userIds}")
     public Result batchUnban(@RequestBody List<Long> userIds) {
         // 前端通过勾选复选框，传递类似于 [101, 105, 108] 这样的用户ID数组过来
         userBlacklistService.batchUnbanUsers(userIds);

@@ -28,7 +28,7 @@ public class UsersController {
         return Result.success(usersService.getAdminUsersPage(pageNum, pageSize, nickname, userId));
     }
 
-    @PostMapping("/admin/ban")
+    @PostMapping("/admin/unban")
     @Operation(summary = "【PC】封禁用户并加入黑名单")
     @LogAction("封禁了用户，用户ID: #{#banDTO.userId}")
     public Result banUser(@RequestBody UserBanDTO banDTO) {

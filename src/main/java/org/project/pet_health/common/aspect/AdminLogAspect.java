@@ -90,6 +90,7 @@ public class AdminLogAspect {
 
             // 保存日志
             adminLogsService.save(logEntity);
+            log.info("AOP拦截成功！当前获取到的管理员ID为: {}", adminId);
 
         } catch (Exception e) {
             log.error("自动记录管理员操作日志失败: {}", e.getMessage());

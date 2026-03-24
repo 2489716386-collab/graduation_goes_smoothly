@@ -3,6 +3,7 @@ package org.project.pet_health.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import jakarta.servlet.http.HttpServletRequest;
 import org.project.pet_health.dto.AdminLoginDTO;
 import org.project.pet_health.dto.UserBanDTO;
 import org.project.pet_health.entity.UserBlacklist;
@@ -27,6 +28,9 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     @Autowired
     private UserBlacklistMapper userBlacklistMapper;
 
+    @Autowired
+    private HttpServletRequest request; // 注入 request
+
     @Override
     public Page<Users> getAdminUsersPage(Integer pageNum, Integer pageSize, String nickname, Long userId) {
         Page<Users> page = new Page<>(pageNum, pageSize);
@@ -48,6 +52,13 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     @Override
     @Transactional(rollbackFor = Exception.class) // 开启事务，保证两步操作要么全成功，要么全失败
     public void banUser(UserBanDTO banDTO) {
+        //获取当前操作管理员ID
+        Long currentAdminId = (Long) request.getAttribute("currentUserId");
+        //被封禁人ID不能等于当前登录人ID
+        if (currentAdminId != null && currentAdminId.equals(banDTO.getUserId())) {
+            throw new UserException("操作失败：管理员不可以封禁自己的账号！"); // 抛出自定义异常
+        }
+
         // 1. 将用户表状态改为 0 (封禁)
         Users user = new Users();
         user.setUserId(banDTO.getUserId());
