@@ -26,6 +26,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/v3/api-docs/**",    // 放行 OpenAPI 3 接口数据
                         "/swagger-resources/**",
                         "/swagger-ui/**",
+                        "/auth/**",
                         "/error"              // 放行 Spring Boot 的默认错误页面
                         //【关键修复】：删除下面这些 TODO 里的放行路径
                         // 只有让拦截器拦截这些路径，它才能解析 Token 并存入 adminId
@@ -44,7 +45,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 //                        "/pet-breeds/**",
 //                        "/pets/**",
 //                        "/sensitive-words/**",
-//                        "/auth/**",
+
 //                        "/user-blacklist/**"
                 );
     }
