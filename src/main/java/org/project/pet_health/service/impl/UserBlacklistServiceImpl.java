@@ -25,8 +25,7 @@ public class UserBlacklistServiceImpl extends ServiceImpl<UserBlacklistMapper, U
     private UsersMapper usersMapper;
 
     @Override
-    public Page<UserBlacklist> getBlacklistPage(Integer pageNum, Integer pageSize, String nickname, Long userId) {
-        LambdaQueryWrapper<UserBlacklist> wrapper = new LambdaQueryWrapper<>();
+    public Page<UserBlacklist> getBlacklistPage(Integer pageNum, Integer pageSize, String nickname, Long userId, String createDate){        LambdaQueryWrapper<UserBlacklist> wrapper = new LambdaQueryWrapper<>();
 
         if (userId != null) {
             wrapper.eq(UserBlacklist::getUserId, userId);
@@ -44,6 +43,17 @@ public class UserBlacklistServiceImpl extends ServiceImpl<UserBlacklistMapper, U
             // 提取所有匹配的 ID，放入 in 查询中
             List<Long> matchedIds = matchedUsers.stream().map(Users::getUserId).collect(Collectors.toList());
             wrapper.in(UserBlacklist::getUserId, matchedIds);
+        }
+
+        //精确匹配某一天的黑名单记录
+        if (StringUtils.hasText(createDate)) {
+            // 拼接出当天的起点和终点
+            String startTime = createDate + " 00:00:00";
+            String endTime = createDate + " 23:59:59";
+
+            // 查询条件： >= 当天0点 并且 <= 当天23点59分
+            wrapper.ge(UserBlacklist::getCreateTime, startTime);
+            wrapper.le(UserBlacklist::getCreateTime, endTime);
         }
 
         wrapper.orderByDesc(UserBlacklist::getCreateTime);

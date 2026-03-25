@@ -24,8 +24,9 @@ public class UsersController {
     public Result adminPage(@RequestParam(defaultValue = "1") Integer pageNum,
                             @RequestParam(defaultValue = "10") Integer pageSize,
                             @RequestParam(required = false) String nickname,
+                            @RequestParam(required = false) String role,
                             @RequestParam(required = false) Long userId) {
-        return Result.success(usersService.getAdminUsersPage(pageNum, pageSize, nickname, userId));
+        return Result.success(usersService.getAdminUsersPage(pageNum, pageSize, nickname, userId, role));
     }
 
     @PostMapping("/admin/unban")

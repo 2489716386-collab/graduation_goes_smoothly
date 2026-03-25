@@ -8,8 +8,7 @@ import java.util.List;
 
 public interface UserBlacklistService extends IService<UserBlacklist> {
     // 分页查询黑名单
-    Page<UserBlacklist> getBlacklistPage(Integer pageNum, Integer pageSize, String nickname, Long userId);
-
+    Page<UserBlacklist> getBlacklistPage(Integer pageNum, Integer pageSize, String nickname, Long userId, String createDate);
     // 批量解封用户 (跨表事务)
     void batchUnbanUsers(List<Long> userIds);
 }

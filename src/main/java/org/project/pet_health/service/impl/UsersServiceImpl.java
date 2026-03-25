@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import org.project.pet_health.dto.AdminLoginDTO;
+import org.project.pet_health.dto.PageInfo;
 import org.project.pet_health.dto.UserBanDTO;
 import org.project.pet_health.entity.UserBlacklist;
 import org.project.pet_health.entity.Users;
@@ -32,21 +33,23 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     private HttpServletRequest request; // 注入 request
 
     @Override
-    public Page<Users> getAdminUsersPage(Integer pageNum, Integer pageSize, String nickname, Long userId) {
+    public PageInfo<Users> getAdminUsersPage(Integer pageNum, Integer pageSize, String nickname, Long userId,String role) {
+// 1. 构建分页对象
         Page<Users> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<Users> wrapper = new LambdaQueryWrapper<>();
 
-        // 模糊搜索昵称
-        if (StringUtils.hasText(nickname)) {
-            wrapper.like(Users::getNickname, nickname);
-        }
-        // 精确匹配用户ID
-        if (userId != null) {
-            wrapper.eq(Users::getUserId, userId);
-        }
+        // 2. 构建查询条件
+        LambdaQueryWrapper<Users> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(userId != null, Users::getUserId, userId);
+        wrapper.like(StringUtils.hasText(nickname), Users::getNickname, nickname);
+        // 关键：增加对 role 的筛选，匹配数据库中的 'admin' 或 'user'
+        wrapper.eq(StringUtils.hasText(role), Users::getRole, role);
         wrapper.orderByDesc(Users::getCreateTime);
 
-        return this.page(page, wrapper);
+        // 3. 执行查询
+        this.page(page, wrapper);
+
+        // 4. 返回自定义的 PageInfo 对象（确保导入的是上面创建的 dto.PageInfo）
+        return new PageInfo<>(page.getTotal(), page.getRecords());
     }
 
     @Override
