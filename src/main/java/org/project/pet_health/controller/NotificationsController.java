@@ -30,13 +30,13 @@ public class NotificationsController {
         NotificationType queryType = null;
         if (type != null) {
             for (NotificationType t : NotificationType.values()) {
-                if (t.name().equals(type)) {
+                if (t.getValue().equals(type)) {
                     queryType = t;
                     break;
                 }
             }
         }
-        return Result.success(notificationsService.getAdminPage(pageNum, pageSize, content, startDate, endDate, type,noticeId));
+        return Result.success(notificationsService.getAdminPage(pageNum, pageSize, content, startDate, endDate, queryType,noticeId));
     }
 
     @PostMapping("/admin/add")

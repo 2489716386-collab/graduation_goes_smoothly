@@ -22,10 +22,10 @@ public class PetBreedsController {
     @Operation(summary = "分页条件查询宠物品种")
     public Result page(@RequestParam(defaultValue = "1") Integer pageNum,
                        @RequestParam(defaultValue = "10") Integer pageSize,
-                       @RequestParam(required = false) String species,
-                       @RequestParam(required = false) String initialLetter,
+                       @RequestParam(required = false) String speciesType,
+                       @RequestParam(required = false) String initial,
                        @RequestParam(required = false) String breedName) {
-        return Result.success(petBreedsService.getAdminPage(pageNum, pageSize, species, initialLetter, breedName));
+        return Result.success(petBreedsService.getAdminPage(pageNum, pageSize, speciesType, initial, breedName));
     }
 
     @PostMapping("/admin/add")
@@ -40,7 +40,7 @@ public class PetBreedsController {
     @Operation(summary = "批量删除宠物品种")
     @LogAction("执行了批量删除宠物品种操作")
     public Result batchDelete(@RequestBody List<Integer> ids) {
-        petBreedsService.batchDeleteBreeds(ids); // 注意：如果你后端的 ID 是 Long 类型，这里 List<Integer> 可能需要改成 List<Long>
+        petBreedsService.removeByIds(ids);
         return Result.success("批量删除品种成功");
     }
 

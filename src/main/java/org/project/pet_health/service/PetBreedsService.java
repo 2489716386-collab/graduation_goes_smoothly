@@ -6,6 +6,6 @@ import org.project.pet_health.entity.PetBreeds;
 import java.util.List;
 
 public interface PetBreedsService extends IService<PetBreeds> {
-    Page<PetBreeds> getAdminPage(Integer pageNum, Integer pageSize, String species, String initialLetter, String breedName);
+    Page<PetBreeds> getAdminPage(Integer pageNum, Integer pageSize, String speciesType, String initial, String breedName);
     void batchDeleteBreeds(List<Integer> ids);
 }

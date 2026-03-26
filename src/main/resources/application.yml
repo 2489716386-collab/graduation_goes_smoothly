@@ -13,6 +13,7 @@ spring:
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml  # Mapper XML 文件路径（如有）
+  type-enums-package: org.project.pet_health.enums
   type-aliases-package: org.project.pet_health.entity  # 实体类包路径（替换成你的实际路径）
   configuration:
     map-underscore-to-camel-case: true  # 下划线自动转驼峰（必开）

@@ -14,15 +14,15 @@ import java.util.List;
 public class PetBreedsServiceImpl extends ServiceImpl<PetBreedsMapper, PetBreeds> implements PetBreedsService {
 
     @Override
-    public Page<PetBreeds> getAdminPage(Integer pageNum, Integer pageSize, String species, String initialLetter, String breedName) {
+    public Page<PetBreeds> getAdminPage(Integer pageNum, Integer pageSize, String speciesType, String initial, String breedName) {
         LambdaQueryWrapper<PetBreeds> wrapper = new LambdaQueryWrapper<>();
 
-// 如果传了 "猫"，就按 species_type 精确查询
-        wrapper.eq(StringUtils.hasText(species), PetBreeds::getSpeciesType, species)
-                // 如果传了 "B"，就按 initial 精确查询
-                .eq(StringUtils.hasText(initialLetter), PetBreeds::getInitial, initialLetter)
-                // 如果传了 "布偶"，就按 breed_name 模糊查询
-                .like(StringUtils.hasText(breedName), PetBreeds::getBreedName, breedName);
+        wrapper.eq(StringUtils.hasText(speciesType), PetBreeds::getSpeciesType, speciesType)
+                .eq(StringUtils.hasText(initial), PetBreeds::getInitial, initial)
+                .like(StringUtils.hasText(breedName), PetBreeds::getBreedName, breedName)
+                // 顺便加个排序：按大类、首字母排序，让同类的品种在表格里排在一起，更美观！
+                .orderByAsc(PetBreeds::getSpeciesType)
+                .orderByAsc(PetBreeds::getInitial);
 
         return this.page(new Page<>(pageNum, pageSize), wrapper);
     }
