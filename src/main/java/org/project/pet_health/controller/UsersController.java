@@ -22,7 +22,7 @@ public class UsersController {
     @GetMapping("/admin/page")
     @Operation(summary = "【PC】分页条件查询所有用户")
     public Result adminPage(@RequestParam(defaultValue = "1") Integer pageNum,
-                            @RequestParam(defaultValue = "10") Integer pageSize,
+                            @RequestParam(defaultValue = "20") Integer pageSize,
                             @RequestParam(required = false) String nickname,
                             @RequestParam(required = false) String role,
                             @RequestParam(required = false) Long userId) {

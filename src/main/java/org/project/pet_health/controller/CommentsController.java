@@ -22,7 +22,7 @@ public class CommentsController {
     @GetMapping("/admin/page")
     @Operation(summary = "后台分页条件查询评论")
     public Result adminPage(@RequestParam(defaultValue = "1") Integer pageNum,
-                            @RequestParam(defaultValue = "10") Integer pageSize,
+                            @RequestParam(defaultValue = "20") Integer pageSize,
                             @RequestParam(required = false) AuditStatus status,
                             @RequestParam(required = false) String content,
                             @RequestParam(required = false) String startDate,

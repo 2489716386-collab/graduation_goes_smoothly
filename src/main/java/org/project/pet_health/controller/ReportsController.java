@@ -19,7 +19,7 @@ public class ReportsController {
     @GetMapping("/admin/page")
     @Operation(summary = "分页条件查询举报记录")
     public Result adminPage(@RequestParam(defaultValue = "1") Integer pageNum,
-                            @RequestParam(defaultValue = "10") Integer pageSize,
+                            @RequestParam(defaultValue = "20") Integer pageSize,
                             @RequestParam(required = false) Integer targetType,
                             @RequestParam(required = false) Integer status,
                             @RequestParam(required = false) String reason,

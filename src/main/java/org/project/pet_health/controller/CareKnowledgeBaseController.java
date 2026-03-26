@@ -43,7 +43,7 @@ public class CareKnowledgeBaseController {
     @GetMapping("/page")
     @Operation(summary = "分页查询养护知识")
     public Result page(@RequestParam(defaultValue = "1") Integer pageNum,
-                       @RequestParam(defaultValue = "10") Integer pageSize,
+                       @RequestParam(defaultValue = "20") Integer pageSize,
                        @RequestParam(required = false) String species) {
         Page<CareKnowledgeBase> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<CareKnowledgeBase> wrapper = new LambdaQueryWrapper<>();

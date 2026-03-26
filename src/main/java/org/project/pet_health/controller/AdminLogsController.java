@@ -18,7 +18,7 @@ public class AdminLogsController {
     @GetMapping("/page")
     @Operation(summary = "分页条件查询操作日志")
     public Result page(@RequestParam(defaultValue = "1") Integer pageNum,
-                       @RequestParam(defaultValue = "10") Integer pageSize,
+                       @RequestParam(defaultValue = "20") Integer pageSize,
                        @RequestParam(required = false) Long adminId,
                        @RequestParam(required = false) String action,
                        @RequestParam(required = false) String startDate,

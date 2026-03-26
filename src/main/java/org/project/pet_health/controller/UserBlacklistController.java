@@ -21,7 +21,7 @@ public class UserBlacklistController {
     @GetMapping("/page")
     @Operation(summary = "分页模糊查询黑名单")
     public Result page(@RequestParam(defaultValue = "1") Integer pageNum,
-                       @RequestParam(defaultValue = "10") Integer pageSize,
+                       @RequestParam(defaultValue = "20") Integer pageSize,
                        @RequestParam(required = false) String nickname,
                        @RequestParam(required = false) Long userId,
                        @RequestParam(required = false) String createDate) {

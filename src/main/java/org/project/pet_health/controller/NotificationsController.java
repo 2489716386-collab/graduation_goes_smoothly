@@ -21,7 +21,7 @@ public class NotificationsController {
     @GetMapping("/admin/page")
     @Operation(summary = "分页条件查询系统通知")
     public Result page(@RequestParam(defaultValue = "1") Integer pageNum,
-                       @RequestParam(defaultValue = "10") Integer pageSize,
+                       @RequestParam(defaultValue = "20") Integer pageSize,
                        @RequestParam(required = false) Integer noticeId,
                        @RequestParam(required = false) String content,
                        @RequestParam(required = false) String startDate,

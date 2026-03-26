@@ -24,7 +24,7 @@ public class CommunityPostsController {
     @GetMapping("/admin/page")
     @Operation(summary = "【PC】后台分页条件查询社区动态(不含图片URL)")
     public Result adminPage(@RequestParam(defaultValue = "1") Integer pageNum,
-                            @RequestParam(defaultValue = "10") Integer pageSize,
+                            @RequestParam(defaultValue = "20") Integer pageSize,
                             @RequestParam(required = false) Integer postType,
                             @RequestParam(required = false) AuditStatus status,
                             @RequestParam(required = false) String content,

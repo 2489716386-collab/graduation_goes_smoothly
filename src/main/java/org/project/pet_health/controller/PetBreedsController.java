@@ -21,7 +21,7 @@ public class PetBreedsController {
     @GetMapping("/admin/page")
     @Operation(summary = "分页条件查询宠物品种")
     public Result page(@RequestParam(defaultValue = "1") Integer pageNum,
-                       @RequestParam(defaultValue = "10") Integer pageSize,
+                       @RequestParam(defaultValue = "20") Integer pageSize,
                        @RequestParam(required = false) String speciesType,
                        @RequestParam(required = false) String breedName) {
         return Result.success(petBreedsService.getAdminPage(pageNum, pageSize, speciesType, breedName));

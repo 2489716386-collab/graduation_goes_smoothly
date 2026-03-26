@@ -21,7 +21,7 @@ public class SensitiveWordsController {
     @GetMapping("/admin/page")
     @Operation(summary = "分页模糊查询敏感词")
     public Result page(@RequestParam(defaultValue = "1") Integer pageNum,
-                       @RequestParam(defaultValue = "10") Integer pageSize,
+                       @RequestParam(defaultValue = "20") Integer pageSize,
                        @RequestParam(required = false) String word) {
         return Result.success(sensitiveWordsService.getAdminPage(pageNum, pageSize, word));
     }
