@@ -99,7 +99,7 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
         return this.page(new Page<>(pageNum, pageSize),
                 new LambdaQueryWrapper<CommunityPosts>()
                         .eq(CommunityPosts::getStatus, AuditStatus.APPROVED)
-                        .orderByDesc(CommunityPosts::getCreateTime));
+                        .orderByDesc(CommunityPosts::getPostId));
     }
 
     /**

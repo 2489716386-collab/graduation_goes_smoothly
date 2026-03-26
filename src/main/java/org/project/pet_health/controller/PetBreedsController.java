@@ -23,9 +23,8 @@ public class PetBreedsController {
     public Result page(@RequestParam(defaultValue = "1") Integer pageNum,
                        @RequestParam(defaultValue = "10") Integer pageSize,
                        @RequestParam(required = false) String speciesType,
-                       @RequestParam(required = false) String initial,
                        @RequestParam(required = false) String breedName) {
-        return Result.success(petBreedsService.getAdminPage(pageNum, pageSize, speciesType, initial, breedName));
+        return Result.success(petBreedsService.getAdminPage(pageNum, pageSize, speciesType, breedName));
     }
 
     @PostMapping("/admin/add")

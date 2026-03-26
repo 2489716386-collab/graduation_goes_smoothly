@@ -14,15 +14,13 @@ import java.util.List;
 public class PetBreedsServiceImpl extends ServiceImpl<PetBreedsMapper, PetBreeds> implements PetBreedsService {
 
     @Override
-    public Page<PetBreeds> getAdminPage(Integer pageNum, Integer pageSize, String speciesType, String initial, String breedName) {
+    public Page<PetBreeds> getAdminPage(Integer pageNum, Integer pageSize, String speciesType, String breedName) {
         LambdaQueryWrapper<PetBreeds> wrapper = new LambdaQueryWrapper<>();
 
         wrapper.eq(StringUtils.hasText(speciesType), PetBreeds::getSpeciesType, speciesType)
-                .eq(StringUtils.hasText(initial), PetBreeds::getInitial, initial)
                 .like(StringUtils.hasText(breedName), PetBreeds::getBreedName, breedName)
                 // 顺便加个排序：按大类、首字母排序，让同类的品种在表格里排在一起，更美观！
-                .orderByAsc(PetBreeds::getSpeciesType)
-                .orderByAsc(PetBreeds::getInitial);
+                .orderByAsc(PetBreeds::getSpeciesType);
 
         return this.page(new Page<>(pageNum, pageSize), wrapper);
     }

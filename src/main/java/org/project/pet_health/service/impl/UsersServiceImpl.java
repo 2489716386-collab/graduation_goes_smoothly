@@ -43,7 +43,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         wrapper.like(StringUtils.hasText(nickname), Users::getNickname, nickname);
         // 关键：增加对 role 的筛选，匹配数据库中的 'admin' 或 'user'
         wrapper.eq(StringUtils.hasText(role), Users::getRole, role);
-        wrapper.orderByDesc(Users::getCreateTime);
+        wrapper.orderByDesc(Users::getUserId);
 
         // 3. 执行查询
         this.page(page, wrapper);

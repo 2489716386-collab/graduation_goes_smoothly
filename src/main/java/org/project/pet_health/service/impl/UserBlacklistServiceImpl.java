@@ -56,7 +56,7 @@ public class UserBlacklistServiceImpl extends ServiceImpl<UserBlacklistMapper, U
             wrapper.le(UserBlacklist::getCreateTime, endTime);
         }
 
-        wrapper.orderByDesc(UserBlacklist::getCreateTime);
+        wrapper.orderByDesc(UserBlacklist::getUserId);
         return this.page(new Page<>(pageNum, pageSize), wrapper);
     }
 
