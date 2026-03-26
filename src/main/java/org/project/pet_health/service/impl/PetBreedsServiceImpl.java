@@ -14,19 +14,16 @@ import java.util.List;
 public class PetBreedsServiceImpl extends ServiceImpl<PetBreedsMapper, PetBreeds> implements PetBreedsService {
 
     @Override
-    public Page<PetBreeds> getAdminPage(Integer pageNum, Integer pageSize, Integer species, String initials) {
+    public Page<PetBreeds> getAdminPage(Integer pageNum, Integer pageSize, String species, String initialLetter, String breedName) {
         LambdaQueryWrapper<PetBreeds> wrapper = new LambdaQueryWrapper<>();
 
-        // 按大类筛选 (例如: 0猫, 1狗, 2其他)
-        if (species != null) {
-            wrapper.eq(PetBreeds::getSpeciesType, species);
-        }
-        // 模糊查询字母索引 (例如: 搜 "A" 出来阿富汗猎犬等)
-        if (StringUtils.hasText(initials)) {
-            wrapper.like(PetBreeds::getInitial, initials);
-        }
+// 如果传了 "猫"，就按 species_type 精确查询
+        wrapper.eq(StringUtils.hasText(species), PetBreeds::getSpeciesType, species)
+                // 如果传了 "B"，就按 initial 精确查询
+                .eq(StringUtils.hasText(initialLetter), PetBreeds::getInitial, initialLetter)
+                // 如果传了 "布偶"，就按 breed_name 模糊查询
+                .like(StringUtils.hasText(breedName), PetBreeds::getBreedName, breedName);
 
-        wrapper.orderByDesc(PetBreeds::getBreedId);
         return this.page(new Page<>(pageNum, pageSize), wrapper);
     }
 

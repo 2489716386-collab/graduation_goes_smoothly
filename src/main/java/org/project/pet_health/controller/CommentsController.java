@@ -33,7 +33,7 @@ public class CommentsController {
 
     @PostMapping("/admin/audit")
     @Operation(summary = "批量审核评论(修改状态并联动举报表)")
-    @LogAction("审核了动态评论，目标状态为: #{#status.desc}")
+    @LogAction("审核了动态评论,评论id：#{#commentIds}，目标状态为: #{#status.desc}")
     public Result batchAudit(@RequestParam AuditStatus status, @RequestBody List<Long> commentIds) {
 
         commentsService.batchAuditComments(commentIds, status);

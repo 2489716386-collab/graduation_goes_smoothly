@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.project.pet_health.common.Result;
 import org.project.pet_health.common.annotation.LogAction;
 import org.project.pet_health.entity.Notifications;
+import org.project.pet_health.enums.NotificationType;
 import org.project.pet_health.service.NotificationsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -21,11 +22,21 @@ public class NotificationsController {
     @Operation(summary = "分页条件查询系统通知")
     public Result page(@RequestParam(defaultValue = "1") Integer pageNum,
                        @RequestParam(defaultValue = "10") Integer pageSize,
+                       @RequestParam(required = false) Integer noticeId,
                        @RequestParam(required = false) String content,
                        @RequestParam(required = false) String startDate,
                        @RequestParam(required = false) String endDate,
                        @RequestParam(required = false) Integer type) {
-        return Result.success(notificationsService.getAdminPage(pageNum, pageSize, content, startDate, endDate, type));
+        NotificationType queryType = null;
+        if (type != null) {
+            for (NotificationType t : NotificationType.values()) {
+                if (t.name().equals(type)) {
+                    queryType = t;
+                    break;
+                }
+            }
+        }
+        return Result.success(notificationsService.getAdminPage(pageNum, pageSize, content, startDate, endDate, type,noticeId));
     }
 
     @PostMapping("/admin/add")

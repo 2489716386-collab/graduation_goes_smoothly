@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
 import lombok.Setter;
+import org.project.pet_health.enums.NotificationType;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -39,7 +40,7 @@ public class Notifications implements Serializable {
     private String content;
 
     @TableField("notice_type")
-    private Boolean NoticeType;
+    private NotificationType NoticeType;
 
     @TableField(value = "create_time",fill = FieldFill.INSERT)
     private LocalDateTime createTime;

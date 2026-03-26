@@ -22,9 +22,10 @@ public class PetBreedsController {
     @Operation(summary = "分页条件查询宠物品种")
     public Result page(@RequestParam(defaultValue = "1") Integer pageNum,
                        @RequestParam(defaultValue = "10") Integer pageSize,
-                       @RequestParam(required = false) Integer species,
-                       @RequestParam(required = false) String initials) {
-        return Result.success(petBreedsService.getAdminPage(pageNum, pageSize, species, initials));
+                       @RequestParam(required = false) String species,
+                       @RequestParam(required = false) String initialLetter,
+                       @RequestParam(required = false) String breedName) {
+        return Result.success(petBreedsService.getAdminPage(pageNum, pageSize, species, initialLetter, breedName));
     }
 
     @PostMapping("/admin/add")
@@ -35,11 +36,19 @@ public class PetBreedsController {
         return Result.success("新增品种成功");
     }
 
-    @PostMapping("/admin/delete/batch")
+    @PostMapping("/admin/delete")
     @Operation(summary = "批量删除宠物品种")
     @LogAction("执行了批量删除宠物品种操作")
     public Result batchDelete(@RequestBody List<Integer> ids) {
-        petBreedsService.batchDeleteBreeds(ids);
+        petBreedsService.batchDeleteBreeds(ids); // 注意：如果你后端的 ID 是 Long 类型，这里 List<Integer> 可能需要改成 List<Long>
         return Result.success("批量删除品种成功");
+    }
+
+    @PutMapping("/admin/update")
+    @Operation(summary = "修改宠物品种")
+    @LogAction("修改了宠物品种字典: #{#petBreeds.breedName}")
+    public Result update(@RequestBody PetBreeds petBreeds) {
+        petBreedsService.updateById(petBreeds);
+        return Result.success("修改品种成功");
     }
 }

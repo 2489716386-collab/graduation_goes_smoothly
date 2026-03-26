@@ -13,7 +13,7 @@ import org.springframework.util.StringUtils;
 public class NotificationsServiceImpl extends ServiceImpl<NotificationsMapper, Notifications> implements NotificationsService {
 
     @Override
-    public Page<Notifications> getAdminPage(Integer pageNum, Integer pageSize, String content, String startDate, String endDate, Integer type) {
+    public Page<Notifications> getAdminPage(Integer pageNum, Integer pageSize, String content, String startDate, String endDate, Integer type,Integer noticeId) {
         LambdaQueryWrapper<Notifications> wrapper = new LambdaQueryWrapper<>();
 
         // 模糊查询通知正文

@@ -38,7 +38,7 @@ public class CommunityPostsController {
     @PostMapping("/admin/audit")
     @Operation(summary = "【PC】批量审核动态(修改状态并联动举报表)")
     // 使用 SpEL 表达式动态记录将帖子改成了什么状态
-    @LogAction("审核了社区动态，目标状态为: #{#status.desc}")
+    @LogAction("审核了社区动态，动态id:#{#postIds}，目标状态为: #{#status.desc}")
     public Result batchAudit(@RequestParam AuditStatus status, @RequestBody List<Long> postIds) {
 
         // 核心跨表修改逻辑已下沉到 Service 层的 batchAuditPosts 方法中
