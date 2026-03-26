@@ -12,6 +12,7 @@ import org.project.pet_health.enums.TargetType;
 import org.project.pet_health.mapper.CommunityPostsMapper;
 import org.project.pet_health.mapper.ReportsMapper;
 import org.project.pet_health.service.CommunityPostsService;
+import org.project.pet_health.service.ReportsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,9 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
 
     @Autowired
     private ReportsMapper reportsMapper;
+
+    @Autowired
+    private ReportsService reportsService;
 
     @Override
     public Page<CommunityPosts> getAdminPage(Integer pageNum, Integer pageSize, Integer postType, AuditStatus status, String content, String startDate, String endDate) {
@@ -96,5 +100,37 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
                 new LambdaQueryWrapper<CommunityPosts>()
                         .eq(CommunityPosts::getStatus, AuditStatus.APPROVED)
                         .orderByDesc(CommunityPosts::getCreateTime));
+    }
+
+    /**
+     * 审核动态 (支持单条或批量调用)
+     * @param postId 动态ID
+     * @param targetStatus 目标状态 (1: 已发布, 2: 违规拦截)
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean auditPost(Long postId, Integer targetStatus) {
+        CommunityPosts post = this.getById(postId);
+        if (post == null) return false;
+
+        // 【核心修复】：将前端传来的 Integer 数字，翻译成我们的枚举对象
+        AuditStatus newStatus = null;
+        for (AuditStatus as : AuditStatus.values()) {
+            if (as.getValue().equals(targetStatus)) { // 这里用 getValue() 匹配前端数字
+                newStatus = as;
+                break;
+            }
+        }
+        if (newStatus == null) return false; // 如果乱传数字，直接拒绝
+
+        // 【解决报错1】：类型匹配了！把翻译好的枚举对象放进去
+        post.setStatus(newStatus);
+        boolean updatePost = this.updateById(post);
+
+        // 冗余代码被缩减为这一行优雅的调用！
+        if (updatePost && post.getReportCount() != null && post.getReportCount() >= 5) {
+            reportsService.syncReportStatusAfterAudit(postId, TargetType.POST, newStatus);
+        }
+        return updatePost;
     }
 }

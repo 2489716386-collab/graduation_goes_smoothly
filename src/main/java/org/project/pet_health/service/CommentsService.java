@@ -10,4 +10,6 @@ import java.util.List;
 public interface CommentsService extends IService<Comments> {
     Page<Comments> getAdminPage(Integer pageNum, Integer pageSize, AuditStatus status, String content, String startDate, String endDate);
     void batchAuditComments(List<Long> commentIds, AuditStatus status);
+
+    public boolean auditComment(Long commentId, Integer targetStatus);
 }

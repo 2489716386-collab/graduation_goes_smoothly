@@ -12,6 +12,7 @@ import org.project.pet_health.enums.TargetType;
 import org.project.pet_health.mapper.CommentsMapper;
 import org.project.pet_health.mapper.ReportsMapper;
 import org.project.pet_health.service.CommentsService;
+import org.project.pet_health.service.ReportsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,5 +58,34 @@ public class CommentsServiceImpl extends ServiceImpl<CommentsMapper, Comments> i
                     .in(Reports::getTargetId, commentIds)
                     .set(Reports::getStatus, reportStatus));
         }
+    }
+
+    @Autowired
+    private ReportsService reportsService;
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean auditComment(Long commentId, Integer targetStatus) {
+        Comments comment = this.getById(commentId);
+        if (comment == null) return false;
+
+        // 将 Integer 翻译为枚举
+        AuditStatus newStatus = null;
+        for (AuditStatus as : AuditStatus.values()) {
+            if (as.getValue().equals(targetStatus)) {
+                newStatus = as;
+                break;
+            }
+        }
+        if (newStatus == null) return false;
+
+        comment.setStatus(newStatus);
+        boolean updateComment = this.updateById(comment);
+
+        // 同样缩减为一行调用！
+        if (updateComment && comment.getReportCount() != null && comment.getReportCount() >= 5) {
+            reportsService.syncReportStatusAfterAudit(commentId, TargetType.COMMENT, newStatus);
+        }
+        return updateComment;
     }
 }

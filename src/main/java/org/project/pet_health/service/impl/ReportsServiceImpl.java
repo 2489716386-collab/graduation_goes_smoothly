@@ -1,6 +1,7 @@
 package org.project.pet_health.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.project.pet_health.entity.Comments;
@@ -66,5 +67,24 @@ public class ReportsServiceImpl extends ServiceImpl<ReportsMapper, Reports> impl
                 commentsMapper.updateById(comment);
             }
         }
+    }
+
+    @Override
+    public void syncReportStatusAfterAudit(Long targetId, TargetType targetType, AuditStatus auditStatus) {
+        // 1. 根据审核结果判定举报记录的目标状态
+        ReportStatus targetReportStatus = (auditStatus == AuditStatus.REJECTED) ?
+                ReportStatus.DELETED : ReportStatus.IGNORED;
+
+        // 2. 批量更新
+        LambdaUpdateWrapper<Reports> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(Reports::getTargetId, targetId)
+                .eq(Reports::getTargetType, targetType)
+                .eq(Reports::getStatus, ReportStatus.PENDING);
+
+        Reports updateReport = new Reports();
+        updateReport.setStatus(targetReportStatus);
+
+        // 因为这里本身就是 ReportsServiceImpl，直接调用 this.update 即可
+        this.update(updateReport, wrapper);
     }
 }
