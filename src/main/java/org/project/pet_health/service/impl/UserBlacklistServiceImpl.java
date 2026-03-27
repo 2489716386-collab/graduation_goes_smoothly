@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class UserBlacklistServiceImpl extends ServiceImpl<UserBlacklistMapper, UserBlacklist> implements UserBlacklistService {
@@ -25,24 +24,10 @@ public class UserBlacklistServiceImpl extends ServiceImpl<UserBlacklistMapper, U
     private UsersMapper usersMapper;
 
     @Override
-    public Page<UserBlacklist> getBlacklistPage(Integer pageNum, Integer pageSize, String nickname, Long userId, String createDate){        LambdaQueryWrapper<UserBlacklist> wrapper = new LambdaQueryWrapper<>();
+    public Page<UserBlacklist> getBlacklistPage(Integer pageNum, Integer pageSize, Long userId, String createDate){        LambdaQueryWrapper<UserBlacklist> wrapper = new LambdaQueryWrapper<>();
 
         if (userId != null) {
             wrapper.eq(UserBlacklist::getUserId, userId);
-        }
-
-        // 【关键点】如果前端通过"昵称"搜索黑名单，因为黑名单表没有昵称字段，需要先去 Users 表查对应 ID
-        if (StringUtils.hasText(nickname)) {
-            List<Users> matchedUsers = usersMapper.selectList(new LambdaQueryWrapper<Users>()
-                    .like(Users::getNickname, nickname)
-                    .select(Users::getUserId)); // 只查出 ID 节省内存
-
-            if (matchedUsers.isEmpty()) {
-                return new Page<>(pageNum, pageSize); // 昵称都不存在，直接返回空分页
-            }
-            // 提取所有匹配的 ID，放入 in 查询中
-            List<Long> matchedIds = matchedUsers.stream().map(Users::getUserId).collect(Collectors.toList());
-            wrapper.in(UserBlacklist::getUserId, matchedIds);
         }
 
         //精确匹配某一天的黑名单记录

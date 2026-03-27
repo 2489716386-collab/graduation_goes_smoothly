@@ -22,10 +22,9 @@ public class UserBlacklistController {
     @Operation(summary = "分页模糊查询黑名单")
     public Result page(@RequestParam(defaultValue = "1") Integer pageNum,
                        @RequestParam(defaultValue = "20") Integer pageSize,
-                       @RequestParam(required = false) String nickname,
                        @RequestParam(required = false) Long userId,
                        @RequestParam(required = false) String createDate) {
-        return Result.success(userBlacklistService.getBlacklistPage(pageNum, pageSize, nickname, userId, createDate));    }
+        return Result.success(userBlacklistService.getBlacklistPage(pageNum, pageSize, userId, createDate));    }
 
     @PostMapping("/unban/batch")
     @Operation(summary = "批量解封用户(移出黑名单)")
