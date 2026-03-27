@@ -2,6 +2,7 @@ package org.project.pet_health.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.project.pet_health.entity.Comments;
@@ -28,8 +29,14 @@ public class ReportsServiceImpl extends ServiceImpl<ReportsMapper, Reports> impl
     private CommentsMapper commentsMapper;
 
     @Override
-    public Page<Reports> getAdminPage(Integer pageNum, Integer pageSize, Integer targetType, Integer status, String reason, String startDate, String endDate) {
+    public IPage<Reports> pageAdmin(Integer pageNum, Integer pageSize, String targetType, Integer status, String startDate, String endDate, String reason, Long targetId) {
         LambdaQueryWrapper<Reports> wrapper = new LambdaQueryWrapper<>();
+
+        if (targetId != null) {
+            wrapper.eq(Reports::getTargetId, targetId);
+        }
+
+
         if (targetType != null) wrapper.eq(Reports::getTargetType, targetType);
         if (status != null) wrapper.eq(Reports::getStatus, status);
         if (StringUtils.hasText(reason)) wrapper.like(Reports::getReason, reason);

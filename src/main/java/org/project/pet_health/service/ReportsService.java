@@ -1,6 +1,6 @@
 package org.project.pet_health.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.project.pet_health.entity.Reports;
 import org.project.pet_health.enums.AuditStatus;
@@ -8,8 +8,7 @@ import org.project.pet_health.enums.TargetType;
 
 public interface ReportsService extends IService<Reports> {
     // 后台分页查询举报
-    Page<Reports> getAdminPage(Integer pageNum, Integer pageSize, Integer targetType, Integer status, String reason, String startDate, String endDate);
-
+    IPage<Reports> pageAdmin(Integer pageNum, Integer pageSize, String targetType, Integer status, String startDate, String endDate, String reason, Long targetId);
     // 用户端：新增举报记录 (触发计数及状态拦截逻辑)
     void addUserReport(Reports report);
 

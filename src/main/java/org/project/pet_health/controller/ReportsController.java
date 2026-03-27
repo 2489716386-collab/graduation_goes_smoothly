@@ -1,5 +1,6 @@
 package org.project.pet_health.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.project.pet_health.common.Result;
@@ -20,12 +21,14 @@ public class ReportsController {
     @Operation(summary = "分页条件查询举报记录")
     public Result adminPage(@RequestParam(defaultValue = "1") Integer pageNum,
                             @RequestParam(defaultValue = "20") Integer pageSize,
-                            @RequestParam(required = false) Integer targetType,
+                            @RequestParam(required = false) String targetType,
                             @RequestParam(required = false) Integer status,
                             @RequestParam(required = false) String reason,
                             @RequestParam(required = false) String startDate,
-                            @RequestParam(required = false) String endDate) {
-        return Result.success(reportsService.getAdminPage(pageNum, pageSize, targetType, status, reason, startDate, endDate));
+                            @RequestParam(required = false) String endDate,
+                            @RequestParam(required = false) Long targetId) {
+        IPage<Reports> page = reportsService.pageAdmin(pageNum, pageSize, targetType, status, startDate, endDate, reason, targetId);
+        return Result.success(page);
     }
 
     @PostMapping("/user/add")
