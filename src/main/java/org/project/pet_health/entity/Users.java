@@ -71,4 +71,9 @@ public class Users implements Serializable {
     @TableField("update_time")
     @Schema(description = "最后更新时间")
     private LocalDateTime updateTime;
+
+    @Schema(description = "个性签名")
+    @Length(max = 100, message = "个性签名不能超过100个字！")
+    @TableField("bio")
+    private String bio;
 }

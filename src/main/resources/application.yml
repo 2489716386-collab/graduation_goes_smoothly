@@ -27,8 +27,8 @@ mybatis-plus:
 # 微信小程序配置
 wechat:
   miniapp:
-    appid: "wx1234567890abcdef" # 替换成你自己的真实 AppID
-    secret: "你的真实AppSecret" # 替换成你自己的真实 AppSecret
+    appid: "wx7d92a25954cc0513" # 替换成你自己的真实 AppID
+    secret: "c377e2bd55b86a244044e6c6cec96ade" # 替换成你自己的真实 AppSecret
 
 
 #mybatis-plus:

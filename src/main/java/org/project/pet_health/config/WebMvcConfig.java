@@ -4,7 +4,6 @@ import org.project.pet_health.interceptor.LoginInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
@@ -28,6 +27,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/swagger-resources/**",
                         "/swagger-ui/**",
                         "/auth/**",
+                        "/uploads/**",
                         "/error"              // 放行 Spring Boot 的默认错误页面
                         //【关键修复】：删除下面这些 TODO 里的放行路径
                         // 只有让拦截器拦截这些路径，它才能解析 Token 并存入 adminId
@@ -49,12 +49,5 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
 //                        "/user-blacklist/**"
                 );
-    }
-
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 将 /uploads/** 的请求映射到本地物理路径
-        String uploadPath = "file:" + System.getProperty("user.dir") + "/uploads/";
-        registry.addResourceHandler("/uploads/**").addResourceLocations(uploadPath);
     }
 }
