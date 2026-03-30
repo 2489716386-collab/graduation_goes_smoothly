@@ -24,6 +24,12 @@ mybatis-plus:
         # 数据库配置
       id-type: auto
 
+# 微信小程序配置
+wechat:
+  miniapp:
+    appid: "wx1234567890abcdef" # 替换成你自己的真实 AppID
+    secret: "你的真实AppSecret" # 替换成你自己的真实 AppSecret
+
 
 #mybatis-plus:
 #  configuration:

@@ -47,4 +47,16 @@ public class PetsController {
         petsService.deleteMyPet(petId, userId);
         return Result.success("宠物已删除");
     }
+
+    @GetMapping("/user/detail/{petId}")
+    @Operation(summary = "获取单只宠物详情")
+    public Result getPetDetail(@PathVariable Long petId, HttpServletRequest request) {
+        // 出于数据安全考虑，在Service层最好校验一下这个petId是否属于当前userId
+        Long userId = (Long) request.getAttribute("currentUserId");
+        Pets pet = petsService.getById(petId);
+        if (pet != null && pet.getUserId().equals(userId)) {
+            return Result.success(pet);
+        }
+        return Result.error("宠物不存在或无权访问");
+    }
 }

@@ -4,6 +4,7 @@ import org.project.pet_health.interceptor.LoginInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
@@ -48,5 +49,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
 //                        "/user-blacklist/**"
                 );
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 将 /uploads/** 的请求映射到本地物理路径
+        String uploadPath = "file:" + System.getProperty("user.dir") + "/uploads/";
+        registry.addResourceHandler("/uploads/**").addResourceLocations(uploadPath);
     }
 }

@@ -36,13 +36,37 @@ public class ReportsServiceImpl extends ServiceImpl<ReportsMapper, Reports> impl
             wrapper.eq(Reports::getTargetId, targetId);
         }
 
+        // 【关键修复 1】：将前端传来的 String 转换为 TargetType 枚举对象
 
-        if (targetType != null) wrapper.eq(Reports::getTargetType, targetType);
-        if (status != null) wrapper.eq(Reports::getStatus, status);
-        if (StringUtils.hasText(reason)) wrapper.like(Reports::getReason, reason);
+        if (StringUtils.hasText(targetType)) {
+            if ("post".equals(targetType)) {
+                wrapper.eq(Reports::getTargetType, TargetType.POST);
+            } else if ("comment".equals(targetType)) {
+                wrapper.eq(Reports::getTargetType, TargetType.COMMENT);
+            }
+        }
+
+        // 将前端传来的 Integer 转换为 ReportStatus 枚举对象
+        if (status != null) {
+            if (status == 0) {
+                wrapper.eq(Reports::getStatus, ReportStatus.PENDING);
+            } else if (status == 1) {
+                wrapper.eq(Reports::getStatus, ReportStatus.IGNORED);
+            } else if (status == 2) {
+                wrapper.eq(Reports::getStatus, ReportStatus.DELETED);
+            }
+        }
+
+        // 4. 举报理由模糊查询
+        if (StringUtils.hasText(reason)) {
+            wrapper.like(Reports::getReason, reason);
+        }
+
+        // 5. 日期范围查询
         if (StringUtils.hasText(startDate) && StringUtils.hasText(endDate)) {
             wrapper.between(Reports::getCreateTime, startDate + " 00:00:00", endDate + " 23:59:59");
         }
+
         wrapper.orderByDesc(Reports::getReportId);
         return this.page(new Page<>(pageNum, pageSize), wrapper);
     }

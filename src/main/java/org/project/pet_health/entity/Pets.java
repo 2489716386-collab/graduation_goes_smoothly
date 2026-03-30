@@ -67,4 +67,5 @@ public class Pets implements Serializable {
     @TableField("update_time")
     @Schema(description = "最后更新时间")
     private LocalDateTime updateTime;
+
 }

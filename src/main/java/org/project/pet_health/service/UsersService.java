@@ -19,4 +19,7 @@ public interface UsersService extends IService<Users> {
 
     // PC端管理员账号密码登录
     String adminLogin(AdminLoginDTO loginDTO);
+
+    // 新增：微信小程序登录方法
+    String wxLogin(String code);
 }

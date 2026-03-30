@@ -1,5 +1,8 @@
 package org.project.pet_health.service.impl;
 
+import cn.hutool.http.HttpUtil;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -16,6 +19,7 @@ import org.project.pet_health.mapper.UsersMapper;
 import org.project.pet_health.service.UsersService;
 import org.project.pet_health.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -130,5 +134,45 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
         // 6. 校验全数通过，签发 Token
         return JwtUtil.generateToken(admin);
+    }
+
+    @Value("${wechat.miniapp.appid}")
+    private String appId;
+
+    @Value("${wechat.miniapp.secret}")
+    private String appSecret;
+
+    @Override
+    public String wxLogin(String code) {
+        // 1. 拼接微信官方接口 URL
+        String url = "https://api.weixin.qq.com/sns/jscode2session?appid=" + appId +
+                "&secret=" + appSecret + "&js_code=" + code + "&grant_type=authorization_code";
+
+        // 2. 发送请求换取 openid
+        String response = HttpUtil.get(url);
+        JSONObject jsonObject = JSONUtil.parseObj(response);
+        String openid = jsonObject.getStr("openid");
+
+        if (openid == null) {
+            throw new UserException("微信登录失败: " + jsonObject.getStr("errmsg"));
+        }
+
+        // 3. 根据 openid 在数据库查找用户
+        Users user = this.getOne(new LambdaQueryWrapper<Users>().eq(Users::getOpenid, openid));
+
+// 4. 如果是新用户，自动注册
+        if (user == null) {
+            user = new Users();
+            user.setOpenid(openid);
+            user.setNickname("微信用户"); // 默认昵称
+            user.setRole("user");       // 默认角色
+            // 修改点1：这里使用 Yes，完全匹配你的 StatusType 枚举
+            user.setStatus(StatusType.Yes);
+            this.save(user);
+        }
+
+        // 5. 生成 JWT Token 返回给前端
+        // 修改点2：直接调用你 JwtUtil 里的 generateToken 方法，传入 user 实体即可
+        return JwtUtil.generateToken(user);
     }
 }

@@ -6,8 +6,12 @@ import org.project.pet_health.common.Result;
 import org.project.pet_health.dto.AdminLoginDTO;
 import org.project.pet_health.service.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -18,17 +22,21 @@ public class LoginController {
     @Autowired
     private UsersService usersService;
 
-//    @PostMapping("/wx-login")
-//    @Operation(summary = "【小程序】微信快捷登录")
-//    public Result wxLogin(@RequestBody Map<String, String> loginForm) {
-//        String code = loginForm.get("code");
-//        String nickname = loginForm.get("nickname");
-//        String avatarUrl = loginForm.get("avatarUrl");
-//
-//        // 调用 Service 走注册/登录逻辑，拿到 Token
-//        String token = usersService.wxLogin(code, nickname, avatarUrl);
-//        return Result.success(Map.of("token", token));
-//    }
+    @PostMapping("/wx-login")
+    @Operation(summary = "【小程序】微信快捷登录")
+    public Result wxLogin(@RequestBody Map<String, String> loginForm) {
+        String code = loginForm.get("code");
+        if (code == null) {
+            return Result.error("Code不能为空");
+        }
+
+        // 调用刚刚补全的 Service 方法，只需传 code
+        String token = usersService.wxLogin(code);
+
+        Map<String, String> result = new HashMap<>();
+        result.put("token", token);
+        return Result.success(result);
+    }
 
     @PostMapping("/admin-login")
     @Operation(summary = "【PC后台】管理员账号密码登录")
