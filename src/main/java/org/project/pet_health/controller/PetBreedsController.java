@@ -50,4 +50,12 @@ public class PetBreedsController {
         petBreedsService.updateById(petBreeds);
         return Result.success("修改品种成功");
     }
+
+    // === 补充：给小程序端提供的获取所有品种列表接口 ===
+    @GetMapping("/list")
+    @Operation(summary = "获取所有宠物品种列表(供小程序下拉框使用)")
+    public Result list() {
+        // 使用 MyBatis-Plus 自带的 list() 方法，直接查出所有品种
+        return Result.success(petBreedsService.list());
+    }
 }
