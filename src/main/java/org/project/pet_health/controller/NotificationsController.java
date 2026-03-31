@@ -1,6 +1,5 @@
 package org.project.pet_health.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.project.pet_health.common.Result;
@@ -8,11 +7,8 @@ import org.project.pet_health.common.annotation.LogAction;
 import org.project.pet_health.entity.Notifications;
 import org.project.pet_health.enums.NotificationType;
 import org.project.pet_health.service.NotificationsService;
-import org.project.pet_health.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/notifications")
@@ -55,21 +51,7 @@ public class NotificationsController {
     @GetMapping("/user/list")
     @Operation(summary = "小程序端-获取当前用户的系统通知")
     public Result getUserNotices(@RequestHeader(name = "token") String token) {
-
-        // 1. 调用你项目里的 JwtUtil 解析 Token
-        Map<String, Object> claims = JwtUtil.parseToken(token);
-
-        // 2. 提取出当前登录的用户 ID
-        Integer userId = (Integer) claims.get("id");
-
-        // 3. 构造查询条件：receiver_id 为 0 (全体) 或者 为 当前用户ID
-        LambdaQueryWrapper<Notifications> wrapper = new LambdaQueryWrapper<>();
-        wrapper.and(w -> w.eq(Notifications::getReceiverId, 0)
-                        .or()
-                        .eq(Notifications::getReceiverId, userId))
-                .orderByDesc(Notifications::getCreatedAt); // 最新的排在最上面
-
-        // 4. 返回查询结果
-        return Result.success(notificationsService.list(wrapper));
+        // 只做一件事：调用service
+        return notificationsService.getUserNotices(token);
     }
 }
