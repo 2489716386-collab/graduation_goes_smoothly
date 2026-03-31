@@ -51,7 +51,13 @@ public class NotificationsController {
     @GetMapping("/user/list")
     @Operation(summary = "小程序端-获取当前用户的系统通知")
     public Result getUserNotices(@RequestHeader(name = "token") String token) {
-        // 只做一件事：调用service
-        return notificationsService.getUserNotices(token);
+        try {
+            // Controller 现在非常干净，只负责一件事：呼叫 Service 干活，然后包装成 Result 返回
+            return Result.success(notificationsService.getUserNoticesByToken(token));
+
+        } catch (Exception e) {
+            // 捕获 Service 层抛出的异常（比如 Token 解析失败），友好地返回给前端
+            return Result.error(e.getMessage());
+        }
     }
 }
