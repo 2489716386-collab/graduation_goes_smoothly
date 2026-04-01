@@ -25,7 +25,7 @@ public class AutoGenerator {
 
     // ========== 生成配置（包含你所有表） ==========
     private static final String[] TABLE_NAMES = {
-            "reports",  "comments"
+            "favorites","likes",  "search_history"
     };
     private static final String TABLE_PREFIX = ""; // 表无前缀，留空
 
