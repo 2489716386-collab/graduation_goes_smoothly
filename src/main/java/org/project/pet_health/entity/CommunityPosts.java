@@ -61,4 +61,10 @@ public class CommunityPosts implements Serializable {
 
     @TableField(value = "create_time",fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+
+    @TableField(exist = false)
+    private String nickname;
+
+    @TableField(exist = false)
+    private String avatar;
 }

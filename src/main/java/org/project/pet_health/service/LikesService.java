@@ -1,16 +1,19 @@
 package org.project.pet_health.service;
 
-import org.project.pet_health.entity.LikesEntity;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.project.pet_health.entity.CommunityPosts;
+import org.project.pet_health.entity.LikesEntity;
 
-/**
- * <p>
- * 用户点赞表 服务类
- * </p>
- *
- * @author weiling
- * @since 2026-04-01
- */
 public interface LikesService extends IService<LikesEntity> {
+    /**
+     * 点赞/取消点赞 切换逻辑
+     * @return true 代表已点赞，false 代表取消点赞
+     */
+    boolean toggleLike(Long postId, Long userId);
 
+    /**
+     * 分页获取用户点赞的帖子列表
+     */
+    Page<CommunityPosts> getMyLikedPosts(Long userId, Integer pageNum, Integer pageSize);
 }

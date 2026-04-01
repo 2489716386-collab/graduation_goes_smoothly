@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.project.pet_health.dto.InteractionNoticeDTO;
 import org.project.pet_health.entity.CommunityPosts;
-import org.project.pet_health.entity.InteractionNotifications;
 import org.project.pet_health.entity.InteractionNotificationsEntity;
 import org.project.pet_health.entity.Users;
 import org.project.pet_health.mapper.InteractionNotificationsMapper;
@@ -42,7 +41,8 @@ public class InteractionNotificationsServiceImpl extends ServiceImpl<Interaction
         notice.setType(type);
         notice.setPostId(postId);
         notice.setContent(content);
-        notice.setIsRead(0); // 默认未读
+        // ⚠️ 实体类是 Boolean，这里传 false 代表未读
+        notice.setIsRead(false);
         this.save(notice);
     }
 
@@ -71,7 +71,10 @@ public class InteractionNotificationsServiceImpl extends ServiceImpl<Interaction
             dto.setId(record.getId());
             dto.setType(record.getType());
             dto.setPostId(record.getPostId());
-            dto.setIsRead(record.getIsRead());
+
+            // ⚠️ 关键修复：将 Boolean 转换为 Integer (false -> 0, true -> 1)
+            dto.setIsRead(record.getIsRead() != null && record.getIsRead() ? 1 : 0);
+
             dto.setCreateTime(record.getCreateTime());
 
             // 填充发送者（操作人）资料
@@ -110,13 +113,16 @@ public class InteractionNotificationsServiceImpl extends ServiceImpl<Interaction
     public Long getUnreadCount(Long userId) {
         return this.count(new LambdaQueryWrapper<InteractionNotificationsEntity>()
                 .eq(InteractionNotificationsEntity::getReceiverId, userId)
-                .eq(InteractionNotificationsEntity::getIsRead, 0));
+                // ⚠️ 实体类是 Boolean，用 false 查询未读
+                .eq(InteractionNotificationsEntity::getIsRead, false));
     }
 
     @Override
     public void markAllAsRead(Long userId) {
         this.update(new LambdaUpdateWrapper<InteractionNotificationsEntity>()
                 .eq(InteractionNotificationsEntity::getReceiverId, userId)
-                .set(InteractionNotificationsEntity::getIsRead, 1));
+                // ⚠️ 实体类是 Boolean，用 false 和 true 更新状态
+                .eq(InteractionNotificationsEntity::getIsRead, false)
+                .set(InteractionNotificationsEntity::getIsRead, true));
     }
 }

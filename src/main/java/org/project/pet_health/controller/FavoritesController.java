@@ -1,18 +1,42 @@
 package org.project.pet_health.controller;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.project.pet_health.common.Result;
+import org.project.pet_health.entity.CommunityPosts;
+import org.project.pet_health.service.FavoritesService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
-/**
- * <p>
- * 用户收藏表 前端控制器
- * </p>
- *
- * @author weiling
- * @since 2026-04-01
- */
+import jakarta.servlet.http.HttpServletRequest;
+
 @RestController
-@RequestMapping("/favorites-entity")
+@RequestMapping("/favorites")
+@Tag(name = "帖子收藏模块")
 public class FavoritesController {
 
+    @Autowired
+    private FavoritesService favoritesService;
+
+    @PostMapping("/toggle/{postId}")
+    @Operation(summary = "切换收藏/取消收藏")
+    public Result toggle(@PathVariable Long postId, HttpServletRequest request) {
+        // 从拦截器中获取当前用户ID
+        Long userId = (Long) request.getAttribute("currentUserId");
+        boolean isFavorited = favoritesService.toggleFavorite(postId, userId);
+
+        // 遵循 Result.success 只有一个参数的规范，返回布尔值状态
+        return Result.success(isFavorited);
+    }
+
+    @GetMapping("/my")
+    @Operation(summary = "获取当前用户的收藏列表")
+    public Result getMyFavorites(@RequestParam(defaultValue = "1") Integer pageNum,
+                                 @RequestParam(defaultValue = "10") Integer pageSize,
+                                 HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        Page<CommunityPosts> page = favoritesService.getMyFavorites(userId, pageNum, pageSize);
+        return Result.success(page);
+    }
 }

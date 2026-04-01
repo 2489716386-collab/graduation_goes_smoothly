@@ -6,8 +6,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.project.pet_health.common.Result;
 import org.project.pet_health.common.annotation.LogAction;
 import org.project.pet_health.entity.CommunityPosts;
+import org.project.pet_health.entity.Users;
 import org.project.pet_health.enums.AuditStatus;
 import org.project.pet_health.service.CommunityPostsService;
+import org.project.pet_health.service.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +22,9 @@ public class CommunityPostsController {
 
     @Autowired
     private CommunityPostsService postsService;
+
+    @Autowired
+    private UsersService usersService;
 
     @GetMapping("/admin/page")
     @Operation(summary = "【PC】后台分页条件查询社区动态(不含图片URL)")
@@ -78,5 +83,19 @@ public class CommunityPostsController {
         Long userId = (Long) request.getAttribute("currentUserId");
         // 调用 Service 层获取分页数据并返回
         return Result.success(postsService.getMyPosts(pageNum, pageSize, userId));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "【小程序】获取单条动态详情")
+    public Result getPostDetail(@PathVariable Long id) {
+        // 直接调用 MyBatis-Plus 自带的 getById 方法查询数据库
+        CommunityPosts post = postsService.getById(id);
+
+        Users user = usersService.getById(post.getUserId());
+        if (user != null) {
+            post.setNickname(user.getNickname());
+            post.setAvatar(user.getAvatarUrl()); // 对应你 Users 表里的字段
+        }
+        return Result.success(post);
     }
 }
