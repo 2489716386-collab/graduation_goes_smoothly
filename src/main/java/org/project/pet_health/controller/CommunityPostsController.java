@@ -68,4 +68,15 @@ public class CommunityPostsController {
         postsService.deleteUserPost(postId, userId);
         return Result.success("删除成功");
     }
+
+    @GetMapping("/user/my")
+    @Operation(summary = "【小程序】获取我的动态列表")
+    public Result getMyPosts(@RequestParam(defaultValue = "1") Integer pageNum,
+                             @RequestParam(defaultValue = "10") Integer pageSize,
+                             HttpServletRequest request) {
+        // 复用你现有的获取当前登录用户ID的逻辑
+        Long userId = (Long) request.getAttribute("currentUserId");
+        // 调用 Service 层获取分页数据并返回
+        return Result.success(postsService.getMyPosts(pageNum, pageSize, userId));
+    }
 }

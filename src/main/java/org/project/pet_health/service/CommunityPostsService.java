@@ -19,11 +19,5 @@ public interface CommunityPostsService extends IService<CommunityPosts> {
     void deleteUserPost(Long postId, Long userId);
     Page<CommunityPosts> getCommunityFeed(Integer pageNum, Integer pageSize);
 
-    /**
-     * 审核社区动态
-     * @param postId 动态ID
-     * @param targetStatus 目标状态 (1: 已发布, 2: 违规拦截)
-     * @return 是否操作成功
-     */
-    public boolean auditPost(Long postId, Integer targetStatus);
+    Page<CommunityPosts> getMyPosts(Integer pageNum, Integer pageSize, Long userId);
 }

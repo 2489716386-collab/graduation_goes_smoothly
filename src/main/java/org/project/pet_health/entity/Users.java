@@ -76,4 +76,8 @@ public class Users implements Serializable {
     @Length(max = 100, message = "个性签名不能超过100个字！")
     @TableField("bio")
     private String bio;
+
+    @Schema(description = "个人主页背景图")
+    @TableField("cover_image")
+    private String coverImage;
 }
