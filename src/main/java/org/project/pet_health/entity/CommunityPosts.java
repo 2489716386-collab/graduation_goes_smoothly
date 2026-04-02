@@ -44,6 +44,7 @@ public class CommunityPosts implements Serializable {
     @TableField("post_type")
     private Integer postType;
 
+    @Schema(description = "喜欢次数")
     @TableField("like_count")
     private Integer likeCount;
 

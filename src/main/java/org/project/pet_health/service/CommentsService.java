@@ -14,10 +14,6 @@ public interface CommentsService extends IService<Comments> {
 
     public boolean auditComment(Long commentId, Integer targetStatus);
 
-    // 添加以下两个方法
-    List<CommentDTO> getCommentsByPostId(Long postId);
-    void addComment(Comments comment, Long userId);
-
     /**
      * 【重要】获取帖子的树形评论列表
      */

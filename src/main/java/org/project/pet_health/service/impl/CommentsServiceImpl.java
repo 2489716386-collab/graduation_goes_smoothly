@@ -21,7 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -109,19 +112,12 @@ public class CommentsServiceImpl extends ServiceImpl<CommentsMapper, Comments> i
 
         if (allComments.isEmpty()) return new ArrayList<>();
 
-        // 2. 批量获取涉及到的用户 ID（包括评论人和被回复人）
-        Set<Long> uIds = new HashSet<>();
-        allComments.forEach(c -> {
-            uIds.add(c.getUserId());
-            if (c.getParentId() != null && c.getParentId() != 0) {
-                // 如果你的表里存了 reply_to_user_id，也要加进来
-                // 暂时通过父评论找被回复人
-            }
-        });
+        // 2. 批量获取涉及到的用户 ID
+        Set<Long> uIds = allComments.stream().map(Comments::getUserId).collect(Collectors.toSet());
         Map<Long, Users> userMap = usersService.listByIds(uIds).stream()
                 .collect(Collectors.toMap(Users::getUserId, u -> u));
 
-        // 3. 将 Entity 转换为 DTO 并补全用户信息
+        // 3. 将 Entity 转换为 DTO 并补全基本用户信息
         List<CommentDTO> allDTOs = allComments.stream().map(c -> {
             CommentDTO dto = new CommentDTO();
             BeanUtils.copyProperties(c, dto);
@@ -133,19 +129,32 @@ public class CommentsServiceImpl extends ServiceImpl<CommentsMapper, Comments> i
             return dto;
         }).collect(Collectors.toList());
 
-        // 4. 【核心】递归或两层嵌套构建树
-        // 这里采用主流的两层展示结构（所有回复都属于一级评论）
-        List<CommentDTO> rootComments = allDTOs.stream()
-                .filter(d -> d.getParentId() == null || d.getParentId() == 0)
-                .collect(Collectors.toList());
+        // 4. 建立 commentId -> DTO 的映射，方便快速查找被回复人
+        Map<Long, CommentDTO> dtoMap = allDTOs.stream()
+                .collect(Collectors.toMap(CommentDTO::getCommentId, d -> d));
 
-        List<CommentDTO> subComments = allDTOs.stream()
-                .filter(d -> d.getParentId() != null && d.getParentId() != 0)
-                .collect(Collectors.toList());
+        // 5. 分离一级评论和二级评论，并补全二级评论的 replyTo 信息
+        List<CommentDTO> rootComments = new ArrayList<>();
+        List<CommentDTO> subComments = new ArrayList<>();
 
+        for (CommentDTO dto : allDTOs) {
+            if (dto.getParentId() == null || dto.getParentId() == 0) {
+                rootComments.add(dto);
+            } else {
+                // 【核心修复】通过 parentId 找到父评论，提取被回复人的昵称和ID
+                CommentDTO parentDto = dtoMap.get(dto.getParentId());
+                if (parentDto != null) {
+                    dto.setReplyToUserId(parentDto.getUserId());
+                    dto.setReplyToNickname(parentDto.getNickname());
+                }
+                subComments.add(dto);
+            }
+        }
+
+        // 6. 将二级评论塞入对应的一级评论的 replies 列表中
         for (CommentDTO root : rootComments) {
             List<CommentDTO> replies = subComments.stream()
-                    .filter(sub -> sub.getParentId().equals(root.getCommentId()))
+                    .filter(sub -> root.getCommentId().equals(sub.getParentId()))
                     .collect(Collectors.toList());
             root.setReplies(replies);
         }
@@ -154,75 +163,48 @@ public class CommentsServiceImpl extends ServiceImpl<CommentsMapper, Comments> i
     }
 
     @Override
-    public List<CommentDTO> getCommentsByPostId(Long postId) {
-        // 1. 查询该动态下所有审核通过的评论
-        LambdaQueryWrapper<Comments> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Comments::getPostId, postId)
-                .eq(Comments::getStatus, AuditStatus.APPROVED) // 只看已发布的
-                .orderByDesc(Comments::getCreateTime);
-        List<Comments> list = this.list(wrapper);
-
-        if (list.isEmpty()) return new ArrayList<>();
-
-        // 2. 批量获取用户信息，避免循环查库
-        List<Long> userIds = list.stream().map(Comments::getUserId).distinct().collect(Collectors.toList());
-        Map<Long, Users> userMap = usersService.listByIds(userIds).stream()
-                .collect(Collectors.toMap(Users::getUserId, u -> u));
-
-        // 3. 组装 DTO
-        return list.stream().map(c -> {
-            CommentDTO dto = new CommentDTO();
-            BeanUtils.copyProperties(c, dto);
-            Users user = userMap.get(c.getUserId());
-            if (user != null) {
-                dto.setNickname(user.getNickname());
-                dto.setAvatar(user.getAvatarUrl());
-            }
-            return dto;
-        }).collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional
-    public void addComment(Comments comment, Long userId) {
-        comment.setUserId(userId);
-        comment.setStatus(AuditStatus.APPROVED); // 也可以设为待审核，这里演示直接发布
-        comment.setLikeCount(0);
-        this.save(comment);
-
-        // 1. 同步更新帖子的评论计数
-        postsService.update().setSql("comments_count = comments_count + 1")
-                .eq("post_id", comment.getPostId()).update();
-
-        // 2. 触发互动通知
-        CommunityPosts post = postsService.getById(comment.getPostId());
-        if (post != null) {
-            noticeService.sendNotice(post.getUserId(), userId, "COMMENT", comment.getPostId(), comment.getContent());
-        }
-    }
-
-    @Override
     @Transactional
     public void postComment(Comments comment, Long userId) {
+        // 1. 补全评论的基础信息
         comment.setUserId(userId);
-        comment.setCreateTime(null); // 交给数据库填充或自动填
-        comment.setStatus(AuditStatus.APPROVED); // 默认通过，也可以设为待审核
+        comment.setCreateTime(null); // 让数据库自动生成时间
+        comment.setStatus(AuditStatus.APPROVED); // 默认审核通过
+
+        // 💡 修复1：点赞数必须初始化为0，否则插入数据库会报错
+        comment.setLikeCount(0);
+
+        // 执行保存
         this.save(comment);
 
-        // 1. 更新帖子评论数
-        postsService.update().setSql("comments_count = comments_count + 1")
-                .eq("post_id", comment.getPostId()).update();
-
-        // 2. 发送通知
-        // 如果是评论帖子，给帖子作者发
-        // 如果是回复评论，给原评论人发
-        Long receiverId;
-        if (comment.getParentId() == null || comment.getParentId() == 0) {
-            receiverId = postsService.getById(comment.getPostId()).getUserId();
-        } else {
-            receiverId = this.getById(comment.getParentId()).getUserId();
+        // 2. 💡 修复2：更安全的更新帖子评论数
+        // 这里使用 update().setSql 是一种快捷方式。
+        // 请确保你数据库 community_posts 表中，主键字段确实叫 post_id
+        CommunityPosts post = postsService.getById(comment.getPostId());
+        if (post != null) {
+            int currentCount = post.getCommentCount() == null ? 0 : post.getCommentCount();
+            post.setCommentCount(currentCount + 1);
+            postsService.updateById(post);
         }
 
-        noticeService.sendNotice(receiverId, userId, "COMMENT", comment.getPostId(), comment.getContent());
+        // 3. 💡 修复3：极其严谨的通知发送逻辑（防止空指针异常）
+        Long receiverId = null;
+
+        if (comment.getParentId() == null || comment.getParentId() == 0) {
+            // 如果是一级评论，通知发给【帖子作者】
+            if (post != null) {
+                receiverId = post.getUserId();
+            }
+        } else {
+            // 如果是二级评论（回复），通知发给【原评论作者】
+            Comments parentComment = this.getById(comment.getParentId());
+            if (parentComment != null) {
+                receiverId = parentComment.getUserId();
+            }
+        }
+
+        // 只有明确知道接收人是谁，且不是自己回复自己时，才发通知
+        if (receiverId != null && !receiverId.equals(userId)) {
+            noticeService.sendNotice(receiverId, userId, "COMMENT", comment.getPostId(), comment.getContent());
+        }
     }
 }

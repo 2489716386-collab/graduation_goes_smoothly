@@ -28,34 +28,45 @@ public class LikesServiceImpl extends ServiceImpl<LikesMapper, LikesEntity> impl
     @Override
     @Transactional // 开启事务，保证点赞记录和计数的同步
     public boolean toggleLike(Long postId, Long userId) {
-        // 1. 检查是否已经点赞
+        // 1. 检查是否已经点赞过
         LambdaQueryWrapper<LikesEntity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(LikesEntity::getPostId, postId).eq(LikesEntity::getUserId, userId);
         LikesEntity existing = this.getOne(wrapper);
 
+        // 2. 获取帖子对象
         CommunityPosts post = postsService.getById(postId);
         if (post == null) throw new RuntimeException("帖子不存在");
 
+        // 获取当前点赞数（如果是 null 就当做 0 处理，防止空指针）
+        int currentLikes = post.getLikeCount() == null ? 0 : post.getLikeCount();
+
         if (existing != null) {
-            // 2. 如果已存在 -> 取消点赞（物理删除）
+            // ================= 3. 已存在 -> 取消点赞 =================
+            // 删除点赞记录
             this.removeById(existing.getLikeId());
-            // 同步减少帖子的点赞数
-            postsService.update().setSql("likes_count = likes_count - 1")
-                    .eq("post_id", postId).gt("likes_count", 0).update();
-            return false;
+
+            // 💡 稳健更新：点赞数 -1 (用 Math.max 确保不会减成负数)
+            post.setLikeCount(Math.max(0, currentLikes - 1));
+            postsService.updateById(post);
+
+            return false; // 返回 false 代表当前状态为未赞
+
         } else {
-            // 3. 如果不存在 -> 新增点赞
+            // ================= 4. 不存在 -> 新增点赞 =================
+            // 插入点赞记录
             LikesEntity newLike = new LikesEntity();
             newLike.setPostId(postId);
             newLike.setUserId(userId);
             this.save(newLike);
-            // 同步增加帖子的点赞数
-            postsService.update().setSql("likes_count = likes_count + 1")
-                    .eq("post_id", postId).update();
 
-            // 4. 触发互动通知
+            // 💡 稳健更新：点赞数 +1
+            post.setLikeCount(currentLikes + 1);
+            postsService.updateById(post);
+
+            // 触发互动通知（通知帖子作者）
             noticeService.sendNotice(post.getUserId(), userId, "LIKE", postId, null);
-            return true;
+
+            return true; // 返回 true 代表当前状态为已赞
         }
     }
 

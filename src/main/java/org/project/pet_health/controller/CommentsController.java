@@ -30,7 +30,6 @@ public class CommentsController {
                             @RequestParam(required = false) String content,
                             @RequestParam(required = false) String startDate,
                             @RequestParam(required = false) String endDate) {
-
         return Result.success(commentsService.getAdminPage(pageNum, pageSize, status, content, startDate, endDate));
     }
 
@@ -38,33 +37,28 @@ public class CommentsController {
     @Operation(summary = "批量审核评论(修改状态并联动举报表)")
     @LogAction("审核了动态评论,评论id：#{#commentIds}，目标状态为: #{#status.desc}")
     public Result batchAudit(@RequestParam AuditStatus status, @RequestBody List<Long> commentIds) {
-
         commentsService.batchAuditComments(commentIds, status);
         return Result.success("批量审核评论成功");
     }
 
-    @GetMapping("/post/{postId}")
-    @Operation(summary = "【小程序】获取动态的评论列表")
-    public Result getPostComments(@PathVariable Long postId) {
-        return Result.success(commentsService.getCommentsByPostId(postId));
-    }
-
-    @PostMapping("/user/add")
-    @Operation(summary = "【小程序】发表评论")
-    public Result addComment(@RequestBody Comments comment, HttpServletRequest request) {
-        Long userId = (Long) request.getAttribute("currentUserId");
-        commentsService.addComment(comment, userId);
-        return Result.success("评论成功");
-    }
+    // ================= 核心升级：树形评论列表与发布 =================
 
     @GetMapping("/tree/{postId}")
-    @Operation(summary = "获取帖子的树形评论列表")
+    @Operation(summary = "【小程序】获取帖子的树形评论列表")
     public Result<List<CommentDTO>> getTree(@PathVariable Long postId) {
-        return Result.success(commentsService.getTreeComments(postId));
+         // 🆘 加上这行打印！
+        System.out.println(">>> 收到评论查询请求，帖子ID: " + postId);
+
+        List<CommentDTO> treeComments = commentsService.getTreeComments(postId);
+
+        // 🆘 加上这行打印！
+        System.out.println(">>> 查询结果数量: " + (treeComments == null ? 0 : treeComments.size()));
+
+        return Result.success(treeComments);
     }
 
     @PostMapping("/user/add")
-    @Operation(summary = "发表评论/回复")
+    @Operation(summary = "【小程序】发表评论/回复")
     public Result add(@RequestBody Comments comment, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("currentUserId");
         commentsService.postComment(comment, userId);

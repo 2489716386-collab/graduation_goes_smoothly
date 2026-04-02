@@ -27,6 +27,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/swagger-resources/**",
                         "/swagger-ui/**",
                         "/auth/**",
+                        // 👇 👇 👇 加上下面这两行，给社区和评论接口开绿灯
+                        "/community-posts/user/feed", // 1. 只放行：获取动态大厅列表
+                        "/community-posts/*",         // 2. 只放行：获取单条动态详情 (/* 只匹配单层数字ID，不会误伤 /user/my)
+                        "/comments/tree/**" ,  // 放行获取帖子的树形评论列表
                         "/error"              // 放行 Spring Boot 的默认错误页面
                         //【关键修复】：删除下面这些 TODO 里的放行路径
                         // 只有让拦截器拦截这些路径，它才能解析 Token 并存入 adminId
