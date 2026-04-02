@@ -12,12 +12,14 @@ import org.project.pet_health.mapper.InteractionNotificationsMapper;
 import org.project.pet_health.service.CommunityPostsService;
 import org.project.pet_health.service.InteractionNotificationsService;
 import org.project.pet_health.service.UsersService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,7 +34,7 @@ public class InteractionNotificationsServiceImpl extends ServiceImpl<Interaction
 
     @Override
     public void sendNotice(Long receiverId, Long senderId, String type, Long postId, String content) {
-        // 如果是自己操作自己，不发通知
+        // 🚨 逻辑防御：如果是自己点赞/评论自己，不发通知
         if (receiverId.equals(senderId)) return;
 
         InteractionNotificationsEntity notice = new InteractionNotificationsEntity();
@@ -40,8 +42,7 @@ public class InteractionNotificationsServiceImpl extends ServiceImpl<Interaction
         notice.setSenderId(senderId);
         notice.setType(type);
         notice.setPostId(postId);
-        notice.setContent(content);
-        // ⚠️ 实体类是 Boolean，这里传 false 代表未读
+        notice.setContent(content); // 评论内容或null
         notice.setIsRead(false);
         this.save(notice);
     }
@@ -124,5 +125,50 @@ public class InteractionNotificationsServiceImpl extends ServiceImpl<Interaction
                 // ⚠️ 实体类是 Boolean，用 false 和 true 更新状态
                 .eq(InteractionNotificationsEntity::getIsRead, false)
                 .set(InteractionNotificationsEntity::getIsRead, true));
+    }
+
+    @Override
+    public List<InteractionNoticeDTO> getMyNotices(Long userId) {
+        // 1. 获取最近50条通知
+        List<InteractionNotificationsEntity> list = this.list(new LambdaQueryWrapper<InteractionNotificationsEntity>()
+                .eq(InteractionNotificationsEntity::getReceiverId, userId)
+                .orderByDesc(InteractionNotificationsEntity::getCreateTime)
+                .last("limit 50"));
+
+        if (list.isEmpty()) return List.of();
+
+        // 2. 批量获取发送者信息和帖子信息
+        Set<Long> senderIds = list.stream().map(InteractionNotificationsEntity::getSenderId).collect(Collectors.toSet());
+        Set<Long> postIds = list.stream().map(InteractionNotificationsEntity::getPostId).collect(Collectors.toSet());
+
+        Map<Long, Users> userMap = usersService.listByIds(senderIds).stream().collect(Collectors.toMap(Users::getUserId, u -> u));
+        Map<Long, CommunityPosts> postMap = postsService.listByIds(postIds).stream().collect(Collectors.toMap(CommunityPosts::getPostId, p -> p));
+
+        // 3. 组装 DTO
+        List<InteractionNoticeDTO> dtos = list.stream().map(n -> {
+            InteractionNoticeDTO dto = new InteractionNoticeDTO();
+            BeanUtils.copyProperties(n, dto);
+
+            Users sender = userMap.get(n.getSenderId());
+            if (sender != null) {
+                dto.setSenderNickname(sender.getNickname());
+                dto.setSenderAvatar(sender.getAvatarUrl());
+            }
+
+            CommunityPosts post = postMap.get(n.getPostId());
+            if (post != null) {
+                String raw = post.getContent();
+                dto.setPostContentTeaser(raw.length() > 20 ? raw.substring(0, 20) + "..." : raw);
+            }
+            return dto;
+        }).collect(Collectors.toList());
+
+        // 4. 【关键】标记为已读（点击进入列表即视为全部阅读）
+        this.update().set("is_read", true)
+                .eq("receiver_id", userId)
+                .eq("is_read", false)
+                .update();
+
+        return dtos;
     }
 }

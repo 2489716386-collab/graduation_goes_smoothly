@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import org.project.pet_health.entity.InteractionNotificationsEntity;
 import org.project.pet_health.dto.InteractionNoticeDTO;
 
+import java.util.List;
+
 public interface InteractionNotificationsService extends IService<InteractionNotificationsEntity> {
 
     /**
@@ -31,4 +33,6 @@ public interface InteractionNotificationsService extends IService<InteractionNot
      * 一键已读
      */
     void markAllAsRead(Long userId);
+
+    List<InteractionNoticeDTO> getMyNotices(Long userId);
 }

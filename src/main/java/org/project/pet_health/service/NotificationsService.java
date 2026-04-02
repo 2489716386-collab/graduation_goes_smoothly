@@ -12,4 +12,5 @@ public interface NotificationsService extends IService<Notifications> {
     Page<Notifications> getAdminPage(Integer pageNum, Integer pageSize, String content, String startDate, String endDate, NotificationType type, Integer noticeId);
 
     List<Notifications> getUserNoticesByToken(String token);
+
 }

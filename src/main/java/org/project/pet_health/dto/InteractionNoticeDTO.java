@@ -39,4 +39,9 @@ public class InteractionNoticeDTO {
     // ================= 被操作的帖子信息 =================
     @Schema(description = "被点赞/评论的帖子内容摘要（截取前15个字）")
     private String postSummary;
+
+    private Long notificationId;
+
+    private String postContentTeaser; // 动态内容缩略（前20字）
+    private String content;           // 如果是评论，这里存评论内容
 }

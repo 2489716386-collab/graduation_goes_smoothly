@@ -43,4 +43,18 @@ public class InteractionNotificationsController {
         noticeService.markAllAsRead(userId);
         return Result.success();
     }
+
+    @GetMapping("/unread-count")
+    @Operation(summary = "【小程序】获取未读通知数")
+    public Result getUnread(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        return Result.success(noticeService.getUnreadCount(userId));
+    }
+
+    @GetMapping("/my")
+    @Operation(summary = "【小程序】获取我的通知列表(并标记已读)")
+    public Result getMyNotices(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        return Result.success(noticeService.getMyNotices(userId));
+    }
 }
