@@ -54,11 +54,11 @@ public class CommunityPosts implements Serializable {
 
     @Schema(description = "被举报次数")
     @TableField("report_count")
-    private Integer ReportCount;
+    private Integer reportCount;
 
     @Schema(description = "评论次数")
     @TableField("comment_count")
-    private Integer CommentCount;
+    private Integer commentCount;
 
     @TableField(value = "create_time",fill = FieldFill.INSERT)
     private LocalDateTime createTime;
@@ -68,4 +68,13 @@ public class CommunityPosts implements Serializable {
 
     @TableField(exist = false)
     private String avatar;
+
+    // 👇👇👇 补上这两个极其重要的状态字段 👇👇👇
+    @Schema(description = "当前用户是否已点赞(前端展示用)")
+    @TableField(exist = false)
+    private Boolean isLiked;
+
+    @Schema(description = "当前用户是否已收藏(前端展示用)")
+    @TableField(exist = false)
+    private Boolean isFavorited;
 }

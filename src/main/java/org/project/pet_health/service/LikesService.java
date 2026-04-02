@@ -1,6 +1,6 @@
 package org.project.pet_health.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.project.pet_health.entity.CommunityPosts;
 import org.project.pet_health.entity.LikesEntity;
@@ -15,5 +15,5 @@ public interface LikesService extends IService<LikesEntity> {
     /**
      * 分页获取用户点赞的帖子列表
      */
-    Page<CommunityPosts> getMyLikedPosts(Long userId, Integer pageNum, Integer pageSize);
+    IPage<CommunityPosts> getMyLikesPosts(Integer pageNum, Integer pageSize, Long userId);
 }

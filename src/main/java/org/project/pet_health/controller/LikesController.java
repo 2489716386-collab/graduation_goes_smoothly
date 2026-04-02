@@ -35,6 +35,6 @@ public class LikesController {
                              @RequestParam(defaultValue = "10") Integer pageSize,
                              HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("currentUserId");
-        return Result.success(likesService.getMyLikedPosts(userId, pageNum, pageSize));
+        return Result.success(likesService.getMyLikesPosts(pageNum, pageSize, userId));
     }
 }

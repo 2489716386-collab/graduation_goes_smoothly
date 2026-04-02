@@ -1,19 +1,25 @@
 package org.project.pet_health.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.project.pet_health.entity.CommunityPosts;
 import org.project.pet_health.entity.LikesEntity;
+import org.project.pet_health.entity.Users;
 import org.project.pet_health.mapper.LikesMapper;
 import org.project.pet_health.service.CommunityPostsService;
 import org.project.pet_health.service.InteractionNotificationsService;
 import org.project.pet_health.service.LikesService;
+import org.project.pet_health.service.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,6 +30,9 @@ public class LikesServiceImpl extends ServiceImpl<LikesMapper, LikesEntity> impl
 
     @Autowired
     private InteractionNotificationsService noticeService;
+
+    @Autowired
+    private UsersService usersService;
 
     @Override
     @Transactional // 开启事务，保证点赞记录和计数的同步
@@ -71,19 +80,64 @@ public class LikesServiceImpl extends ServiceImpl<LikesMapper, LikesEntity> impl
     }
 
     @Override
-    public Page<CommunityPosts> getMyLikedPosts(Long userId, Integer pageNum, Integer pageSize) {
+    public IPage<CommunityPosts> getMyLikesPosts(Integer pageNum, Integer pageSize, Long userId) {
         // 1. 先查出该用户所有的点赞记录
-        LambdaQueryWrapper<LikesEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(LikesEntity::getUserId, userId).orderByDesc(LikesEntity::getCreateTime);
-        List<LikesEntity> likes = this.list(wrapper);
+        List<LikesEntity> likeRecords = this.list(new LambdaQueryWrapper<LikesEntity>()
+                .eq(LikesEntity::getUserId, userId));
 
-        if (likes.isEmpty()) return new Page<>();
+        // 【边界防御】如果没有点赞记录，直接返回空分页
+        if (likeRecords.isEmpty()) {
+            return new Page<>(pageNum, pageSize);
+        }
 
-        // 2. 提取帖子ID并分页查询帖子详情
-        List<Long> postIds = likes.stream().map(LikesEntity::getPostId).collect(Collectors.toList());
-        Page<CommunityPosts> page = new Page<>(pageNum, pageSize);
-        return postsService.page(page, new LambdaQueryWrapper<CommunityPosts>()
-                .in(CommunityPosts::getPostId, postIds)
-                .orderByDesc(CommunityPosts::getCreateTime));
+        // 2. 提取出所有的帖子 ID
+        List<Long> postIds = likeRecords.stream()
+                .map(LikesEntity::getPostId)
+                .collect(Collectors.toList());
+
+        // 3. 批量查询这些动态的详细内容
+        List<CommunityPosts> posts = postsService.listByIds(postIds);
+
+        // 【边界防御】如果帖子都被原作者删除了，导致查不到内容，直接返回空分页
+        if (posts.isEmpty()) {
+            return new Page<>(pageNum, pageSize);
+        }
+
+        // 4. 💡 核心逻辑：提取发帖人 ID 并批量查询用户信息，避免 for 循环里查数据库（N+1 查询问题）
+        Set<Long> authorIds = posts.stream()
+                .map(CommunityPosts::getUserId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Users> userMap = usersService.listByIds(authorIds).stream()
+                .collect(Collectors.toMap(Users::getUserId, u -> u));
+
+        // 5. 将头像、昵称和点赞状态组装到帖子实体中
+        posts.forEach(post -> {
+            Users author = userMap.get(post.getUserId());
+            if (author != null) {
+                post.setNickname(author.getNickname());
+                post.setAvatar(author.getAvatarUrl());
+            }
+            // 既然是在“我的喜欢”列表里，那状态必须是 true
+            post.setIsLiked(true);
+        });
+
+        // 6. 💡 核心逻辑：按照动态的实际发布时间降序排序（从新到旧）
+        posts.sort((a, b) -> b.getCreateTime().compareTo(a.getCreateTime()));
+
+        // 7. 手动对排序好的 List 进行内存分页
+        int start = (pageNum - 1) * pageSize;
+        int end = Math.min(start + pageSize, posts.size());
+
+        List<CommunityPosts> pageList = new ArrayList<>();
+        if (start < posts.size()) {
+            pageList = posts.subList(start, end);
+        }
+
+        // 8. 组装标准的 IPage 对象返回给 Controller
+        IPage<CommunityPosts> page = new Page<>(pageNum, pageSize, posts.size());
+        page.setRecords(pageList);
+
+        return page;
     }
 }

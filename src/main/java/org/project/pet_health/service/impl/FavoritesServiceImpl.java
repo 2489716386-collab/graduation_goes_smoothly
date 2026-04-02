@@ -1,19 +1,25 @@
 package org.project.pet_health.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.project.pet_health.entity.CommunityPosts;
 import org.project.pet_health.entity.FavoritesEntity;
+import org.project.pet_health.entity.Users;
 import org.project.pet_health.mapper.FavoritesMapper;
 import org.project.pet_health.service.CommunityPostsService;
 import org.project.pet_health.service.FavoritesService;
 import org.project.pet_health.service.InteractionNotificationsService;
+import org.project.pet_health.service.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,6 +30,9 @@ public class FavoritesServiceImpl extends ServiceImpl<FavoritesMapper, Favorites
 
     @Autowired
     private InteractionNotificationsService noticeService;
+
+    @Autowired
+    private UsersService usersService;
 
     @Override
     @Transactional
@@ -54,27 +63,42 @@ public class FavoritesServiceImpl extends ServiceImpl<FavoritesMapper, Favorites
     }
 
     @Override
-    public Page<CommunityPosts> getMyFavorites(Long userId, Integer pageNum, Integer pageSize) {
-        // 1. 获取该用户的所有收藏记录（按时间倒序）
-        LambdaQueryWrapper<FavoritesEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FavoritesEntity::getUserId, userId).orderByDesc(FavoritesEntity::getCreateTime);
-        List<FavoritesEntity> favList = this.list(wrapper);
+    public IPage<CommunityPosts> getMyFavorites(Integer pageNum, Integer pageSize, Long userId) {
+        // 1. 查收藏记录
+        List<FavoritesEntity> favRecords = this.list(new LambdaQueryWrapper<FavoritesEntity>()
+                .eq(FavoritesEntity::getUserId, userId));
 
-        if (favList.isEmpty()) {
-            return new Page<>();
-        }
+        if (favRecords.isEmpty()) return new Page<>(pageNum, pageSize);
 
-        // 2. 提取收藏的动态ID列表
-        List<Long> postIds = favList.stream()
-                .map(FavoritesEntity::getPostId)
-                .collect(Collectors.toList());
+        List<Long> postIds = favRecords.stream().map(FavoritesEntity::getPostId).collect(Collectors.toList());
 
-        // 3. 分页查询对应的动态详情
-        Page<CommunityPosts> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<CommunityPosts> postWrapper = new LambdaQueryWrapper<>();
-        postWrapper.in(CommunityPosts::getPostId, postIds)
-                .orderByDesc(CommunityPosts::getCreateTime); // 列表按动态发布时间倒序排
+        // 2. 查动态内容
+        List<CommunityPosts> posts = postsService.listByIds(postIds);
 
-        return postsService.page(page, postWrapper);
+        // 3. 💡 补全作者信息
+        Set<Long> authorIds = posts.stream().map(CommunityPosts::getUserId).collect(Collectors.toSet());
+        Map<Long, Users> userMap = usersService.listByIds(authorIds).stream()
+                .collect(Collectors.toMap(Users::getUserId, u -> u));
+
+        posts.forEach(post -> {
+            Users author = userMap.get(post.getUserId());
+            if (author != null) {
+                post.setNickname(author.getNickname());
+                post.setAvatar(author.getAvatarUrl());
+            }
+            post.setIsFavorited(true);
+        });
+
+        // 4. 💡 按照帖子发布时间排序
+        posts.sort((a, b) -> b.getCreateTime().compareTo(a.getCreateTime()));
+
+        // 5. 手动分页
+        int start = (pageNum - 1) * pageSize;
+        int end = Math.min(start + pageSize, posts.size());
+        List<CommunityPosts> pageList = (start < posts.size()) ? posts.subList(start, end) : new ArrayList<>();
+
+        IPage<CommunityPosts> page = new Page<>(pageNum, pageSize, posts.size());
+        page.setRecords(pageList);
+        return page;
     }
 }

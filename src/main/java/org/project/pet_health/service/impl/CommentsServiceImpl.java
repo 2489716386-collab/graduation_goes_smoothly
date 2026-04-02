@@ -152,15 +152,38 @@ public class CommentsServiceImpl extends ServiceImpl<CommentsMapper, Comments> i
         }
 
         // 6. 将二级评论塞入对应的一级评论的 replies 列表中
-        for (CommentDTO root : rootComments) {
-            List<CommentDTO> replies = subComments.stream()
-                    .filter(sub -> root.getCommentId().equals(sub.getParentId()))
-                    .collect(Collectors.toList());
-            root.setReplies(replies);
+        // 6. 🚀 完美修复楼中楼：将所有二级/三级评论，全部塞入它们【最顶级】的一级评论的 replies 列表中
+        for (CommentDTO sub : subComments) {
+            // 向上追溯，找到它的顶级根评论 ID
+            Long currentParentId = sub.getParentId();
+
+            while (currentParentId != null && currentParentId != 0) {
+                CommentDTO parent = dtoMap.get(currentParentId);
+                if (parent == null) break;
+
+                // 如果父评论的 parentId 为空或 0，说明这个父评论就是顶级评论！
+                if (parent.getParentId() == null || parent.getParentId() == 0) {
+                    Long rootId = parent.getCommentId();
+
+                    // 找到根评论对象，把当前子评论塞进去
+                    for (CommentDTO root : rootComments) {
+                        if (root.getCommentId().equals(rootId)) {
+                            if (root.getReplies() == null) {
+                                root.setReplies(new ArrayList<>());
+                            }
+                            root.getReplies().add(sub);
+                            break;
+                        }
+                    }
+                    break;
+                }
+                // 还没到顶，继续往上找
+                currentParentId = parent.getParentId();
+            }
         }
 
         return rootComments;
-    }
+    } // getTreeComments 方法结束
 
     @Override
     @Transactional

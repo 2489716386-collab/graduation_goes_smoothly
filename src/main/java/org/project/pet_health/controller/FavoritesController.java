@@ -1,15 +1,12 @@
 package org.project.pet_health.controller;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.project.pet_health.common.Result;
-import org.project.pet_health.entity.CommunityPosts;
 import org.project.pet_health.service.FavoritesService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/favorites")
@@ -36,7 +33,6 @@ public class FavoritesController {
                                  @RequestParam(defaultValue = "10") Integer pageSize,
                                  HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("currentUserId");
-        Page<CommunityPosts> page = favoritesService.getMyFavorites(userId, pageNum, pageSize);
-        return Result.success(page);
+        return Result.success(favoritesService.getMyFavorites(pageNum, pageSize, userId));
     }
 }
