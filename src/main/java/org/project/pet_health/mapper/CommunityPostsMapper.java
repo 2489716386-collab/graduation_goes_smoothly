@@ -2,8 +2,10 @@ package org.project.pet_health.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.project.pet_health.entity.CommunityPosts;
+import org.project.pet_health.service.impl.CommunityPostsServiceImpl;
 
 import java.util.List;
 import java.util.Map;
@@ -29,4 +31,10 @@ public interface CommunityPostsMapper extends BaseMapper<CommunityPosts> {
     // 在添加查询本月新增动态的接口
     @Select("SELECT COUNT(*) FROM community_posts WHERE DATE_FORMAT(create_time, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')")
     Integer getMonthlyPostsCount();
+
+    List<CommunityPosts> selectRecommendedPosts(
+            @Param("isColdStart") boolean isColdStart,
+            @Param("petBreeds") List<String> petBreeds,
+            @Param("keywordWeights") List<CommunityPostsServiceImpl.KeywordWeight> keywordWeights
+    );
 }

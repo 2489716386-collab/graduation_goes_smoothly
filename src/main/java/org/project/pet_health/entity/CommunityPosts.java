@@ -77,4 +77,10 @@ public class CommunityPosts implements Serializable {
     @Schema(description = "当前用户是否已收藏(前端展示用)")
     @TableField(exist = false)
     private Boolean isFavorited;
+
+    // =========== 以下为非数据库字段，仅供业务传输使用 ===========
+
+    @Schema(description = "算法推荐得分(非数据库字段)")
+    @TableField(exist = false) // 极其重要：告诉 MyBatisPlus 数据库里没这个列，插入更新时忽略它
+    private Integer recommendScore;
 }

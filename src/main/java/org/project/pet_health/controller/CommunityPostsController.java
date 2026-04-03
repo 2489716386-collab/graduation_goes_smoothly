@@ -1,5 +1,6 @@
 package org.project.pet_health.controller;
 
+import io.jsonwebtoken.Claims;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +11,7 @@ import org.project.pet_health.entity.Users;
 import org.project.pet_health.enums.AuditStatus;
 import org.project.pet_health.service.CommunityPostsService;
 import org.project.pet_health.service.UsersService;
+import org.project.pet_health.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +27,7 @@ public class CommunityPostsController {
 
     @Autowired
     private UsersService usersService;
+
 
     @GetMapping("/admin/page")
     @Operation(summary = "【PC】后台分页条件查询社区动态(不含图片URL)")
@@ -97,5 +100,56 @@ public class CommunityPostsController {
             post.setAvatar(user.getAvatarUrl()); // 对应你 Users 表里的字段
         }
         return Result.success(post);
+    }
+
+    /**
+     * 1. 搜索动态 (记录历史 + 支持游客与登录用户)
+     */
+    @GetMapping("/search")
+    public Result search(@RequestParam("keyword") String keyword,
+                         @RequestParam(value = "sort", defaultValue = "hot") String sort,
+                         @RequestHeader(value = "token", required = false) String token) {
+        Long userId = null;
+
+        // 尝试解析 Token
+        if (token != null && !token.trim().isEmpty()) {
+            try {
+                Claims claims = JwtUtil.verifyJwt(token);
+                if (claims != null && claims.get("userId") != null) {
+                    userId = Long.valueOf(claims.get("userId").toString());
+                }
+            } catch (Exception e) {
+                // Token 伪造或已过期
+                // 这里【不抛出异常】，而是默默吞掉，视为 userId = null (游客身份)
+            }
+        }
+
+        // 调用我们在 Service 中写好的搜索逻辑
+        List<CommunityPosts> list = postsService.searchPosts(keyword, sort, userId);
+        return Result.success(list);
+    }
+
+    /**
+     * 2. 个性化推荐动态 (千人千面 + 游客冷启动榜单)
+     */
+    @GetMapping("/recommend")
+    public Result recommend(@RequestHeader(value = "token", required = false) String token) {
+        Long userId = null;
+
+        // 尝试解析 Token
+        if (token != null && !token.trim().isEmpty()) {
+            try {
+                Claims claims = JwtUtil.verifyJwt(token);
+                if (claims != null && claims.get("userId") != null) {
+                    userId = Long.valueOf(claims.get("userId").toString());
+                }
+            } catch (Exception e) {
+                // 同样【不抛出异常】，让过期用户或游客也能看到纯热度动态
+            }
+        }
+
+        // 调用我们在 Service 中写好的推荐逻辑
+        List<CommunityPosts> list = postsService.getRecommendedPosts(userId);
+        return Result.success(list);
     }
 }

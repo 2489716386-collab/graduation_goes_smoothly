@@ -20,4 +20,14 @@ public interface CommunityPostsService extends IService<CommunityPosts> {
     Page<CommunityPosts> getCommunityFeed(Integer pageNum, Integer pageSize);
 
     Page<CommunityPosts> getMyPosts(Integer pageNum, Integer pageSize, Long userId);
+
+    /**
+     * 搜索动态并记录搜索历史
+     */
+    List<CommunityPosts> getRecommendedPosts(Long userId);
+
+    /**
+     * 获取个性化推荐动态
+     */
+    List<CommunityPosts> searchPosts(String keyword, String sort, Long userId);
 }
