@@ -56,9 +56,11 @@
             cp.*,
             u.nickname,
             u.avatar,
-        FROM community_posts cp
-                 LEFT JOIN users u ON cp.user_id = u.id  WHERE cp.status = #{approvedStatus}
-        ORDER BY ...
+            ...
+            FROM community_posts cp
+            LEFT JOIN users u ON cp.user_id = u.id
+        WHERE cp.status = #{approvedStatus}
+            ...
     </select>
 
 </mapper>

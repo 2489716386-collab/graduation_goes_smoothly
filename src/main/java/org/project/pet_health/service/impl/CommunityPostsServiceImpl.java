@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
-import org.project.pet_health.entity.*;
+import org.project.pet_health.entity.CommunityPosts;
+import org.project.pet_health.entity.Reports;
+import org.project.pet_health.entity.SearchHistoryEntity;
 import org.project.pet_health.enums.AuditStatus;
 import org.project.pet_health.enums.ReportStatus;
 import org.project.pet_health.enums.TargetType;
@@ -16,10 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper, CommunityPosts> implements CommunityPostsService {
@@ -35,6 +35,8 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
     private PetBreedsMapper petBreedsMapper; // 新增：注入品种表的 Mapper
     @Resource
     private SearchHistoryMapper searchHistoryMapper;
+    @Resource
+    private UsersMapper usersMapper;
 
     @Override
     public Page<CommunityPosts> getAdminPage(Integer pageNum, Integer pageSize, Integer postType, AuditStatus status, String content, String startDate, String endDate) {
@@ -128,79 +130,13 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
         public KeywordWeight(String k, Integer w) { this.keyword = k; this.weight = w; }
     }
 
-    public List<CommunityPosts> getRecommendedPosts(Long userId) {
-        boolean isColdStart = true;
-        List<String> petBreeds = new ArrayList<>();
-        List<KeywordWeight> keywordWeights = new ArrayList<>();
-
-        if (userId != null) {
-            // 1. 获取用户宠物特征（基础权重很高，比如设为 10）
-            List<Pets> myPets = petsMapper.selectList(
-                    new LambdaQueryWrapper<Pets>().eq(Pets::getUserId, userId)
-            );
-            if (!myPets.isEmpty()) {
-                isColdStart = false;
-                // 使用 Stream API 提取所有非空的 breedId 并去重
-                List<Integer> breedIds = myPets.stream()
-                        .map(Pets::getBreedId)
-                        .filter(Objects::nonNull)
-                        .distinct()
-                        .collect(Collectors.toList());
-
-                if (!breedIds.isEmpty()) {
-                    // MyBatis-Plus 的 selectBatchIds 接受 Collection<? extends Serializable>，传 Integer 列表完全没问题
-                    List<PetBreeds> breedsList = petBreedsMapper.selectBatchIds(breedIds);
-
-                    // 将查到的 breedName 收集到列表中
-                    petBreeds = breedsList.stream()
-                            .map(PetBreeds::getBreedName)
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toList());
-                }
-            }
-
-            // 2. 获取最近 7 天的搜索历史，并进行【权重衰减计算】
-            LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
-            List<SearchHistoryEntity> histories = searchHistoryMapper.selectList(
-                    new LambdaQueryWrapper<SearchHistoryEntity>()
-                            .eq(SearchHistoryEntity::getUserId, userId)
-                            .ge(SearchHistoryEntity::getCreateTime, sevenDaysAgo)
-                            .orderByDesc(SearchHistoryEntity::getCreateTime)
-            );
-
-            if (!histories.isEmpty()) {
-                isColdStart = false;
-                // 去重，保留同一个词最新的搜索时间计算权重
-                Map<String, Integer> weightMap = new HashMap<>();
-                for (SearchHistoryEntity history : histories) {
-                    if (!weightMap.containsKey(history.getKeyword())) {
-                        // 衰减公式：权重 = 5 - 相差天数 (今天搜的得5分，1天前得4分，以此类推，最低1分)
-                        long daysBetween = ChronoUnit.DAYS.between(history.getCreateTime(), LocalDateTime.now());
-                        int weight = Math.max(1, 5 - (int) daysBetween);
-                        weightMap.put(history.getKeyword(), weight);
-                    }
-                }
-                weightMap.forEach((k, w) -> keywordWeights.add(new KeywordWeight(k, w)));
-            }
-        }
-
-        // 3. 调用 Mapper 执行动态 SQL 查询
-        // 参数：是否冷启动、宠物特征列表、带权重的历史搜索词列表
-// 3. 调用 Mapper 执行动态 SQL 查询 (传入 AuditStatus.APPROVED)
-        return communityPostsMapper.selectRecommendedPosts(
-                isColdStart,
-                petBreeds,
-                keywordWeights,
-                org.project.pet_health.enums.AuditStatus.APPROVED );// 👈 传给 XML 的枚举return communityPostsMapper.selectRecommendedPosts(isColdStart, petBreeds, keywordWeights);
-    }
-
     /**
-     * 搜索动态并记录搜索历史
+     * 1. 搜索动态 (记录历史 + 排序 + 关联用户信息)
      */
     @Override
     public List<CommunityPosts> searchPosts(String keyword, String sort, Long userId) {
-        // 1. 记录历史
-        if (userId != null && keyword != null && !keyword.trim().isEmpty()) {
+        // 1. 如果用户已登录且搜索词不为空，将关键词写入 search_history 表
+        if (userId != null && org.springframework.util.StringUtils.hasText(keyword)) {
             SearchHistoryEntity history = new SearchHistoryEntity();
             history.setUserId(userId);
             history.setKeyword(keyword.trim());
@@ -208,10 +144,8 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
             searchHistoryMapper.insert(history);
         }
 
-        // 2. 构造查询 (修复点：使用枚举对象 AuditStatus.APPROVED)
+        // 2. 构造查询条件 (只查内容 content，且状态为 APPROVED)
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<CommunityPosts> wrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-
-        // MyBatis-Plus 会自动将枚举转为正确的数据库值 (例如 1)
         wrapper.eq(CommunityPosts::getStatus, org.project.pet_health.enums.AuditStatus.APPROVED);
 
         if (org.springframework.util.StringUtils.hasText(keyword)) {
@@ -225,6 +159,86 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
             wrapper.last("ORDER BY (like_count * 2 + comment_count * 5) DESC");
         }
 
-        return communityPostsMapper.selectList(wrapper);
+        // 4. 执行查询
+        List<CommunityPosts> posts = communityPostsMapper.selectList(wrapper);
+
+        // 5. 【核心修复】手动关联查询用户信息（昵称和头像）
+        if (!posts.isEmpty()) {
+            for (CommunityPosts post : posts) {
+                org.project.pet_health.entity.Users user = usersMapper.selectById(post.getUserId());
+                if (user != null) {
+                    post.setNickname(user.getNickname());
+                    post.setAvatar(user.getAvatarUrl());
+                }
+            }
+        }
+
+        return posts;
+    }
+
+
+    /**
+     * 2. 获取个性化推荐动态
+     */
+    @Override
+    public List<CommunityPosts> getRecommendedPosts(Long userId) {
+        boolean isColdStart = true;
+        List<String> petBreeds = new ArrayList<>();
+        List<KeywordWeight> keywordWeights = new ArrayList<>();
+
+        if (userId != null) {
+            // 获取宠物特征
+            List<org.project.pet_health.entity.Pets> myPets = petsMapper.selectList(
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<org.project.pet_health.entity.Pets>()
+                            .eq(org.project.pet_health.entity.Pets::getUserId, userId)
+            );
+
+            if (!myPets.isEmpty()) {
+                isColdStart = false;
+                List<Integer> breedIds = myPets.stream()
+                        .map(org.project.pet_health.entity.Pets::getBreedId)
+                        .filter(java.util.Objects::nonNull)
+                        .distinct()
+                        .collect(java.util.stream.Collectors.toList());
+
+                if (!breedIds.isEmpty()) {
+                    List<org.project.pet_health.entity.PetBreeds> breedsList = petBreedsMapper.selectBatchIds(breedIds);
+                    petBreeds = breedsList.stream()
+                            .map(org.project.pet_health.entity.PetBreeds::getBreedName)
+                            .filter(java.util.Objects::nonNull)
+                            .collect(java.util.stream.Collectors.toList());
+                }
+            }
+
+            // 获取搜索历史（时间衰减）
+            java.time.LocalDateTime sevenDaysAgo = java.time.LocalDateTime.now().minusDays(7);
+            List<SearchHistoryEntity> histories = searchHistoryMapper.selectList(
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SearchHistoryEntity>()
+                            .eq(SearchHistoryEntity::getUserId, userId)
+                            .ge(SearchHistoryEntity::getCreateTime, sevenDaysAgo)
+                            .orderByDesc(SearchHistoryEntity::getCreateTime)
+            );
+
+            if (!histories.isEmpty()) {
+                isColdStart = false;
+                java.util.Map<String, Integer> weightMap = new java.util.HashMap<>();
+                for (SearchHistoryEntity history : histories) {
+                    if (!weightMap.containsKey(history.getKeyword())) {
+                        long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(history.getCreateTime(), java.time.LocalDateTime.now());
+                        int weight = Math.max(1, 5 - (int) daysBetween);
+                        weightMap.put(history.getKeyword(), weight);
+                    }
+                }
+                weightMap.forEach((k, w) -> keywordWeights.add(new KeywordWeight(k, w)));
+            }
+        }
+
+        // 调用 Mapper 执行动态 SQL 查询 (注意最后一个参数传入了枚举)
+        return communityPostsMapper.selectRecommendedPosts(
+                isColdStart,
+                petBreeds,
+                keywordWeights,
+                org.project.pet_health.enums.AuditStatus.APPROVED // 👈 新增的枚举参数
+        );
     }
 }
