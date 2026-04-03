@@ -3,13 +3,12 @@
 <mapper namespace="org.project.pet_health.mapper.CommunityPostsMapper">
 
     <select id="selectRecommendedPosts" resultType="org.project.pet_health.entity.CommunityPosts">
-        SELECT cp.*,
-
+        SELECT
+        cp.*,
+        u.nickname,
+        u.avatar_url AS avatar,
         <choose>
-            <when test="isColdStart == true">
-                0 AS recommend_score
-            </when>
-
+            <when test="isColdStart == true">0 AS recommend_score</when>
             <otherwise>
                 (
                 <choose>
@@ -20,9 +19,7 @@
                     </when>
                     <otherwise>0</otherwise>
                 </choose>
-
                 +
-
                 <choose>
                     <when test="keywordWeights != null and keywordWeights.size() > 0">
                         <foreach collection="keywordWeights" item="kw" separator=" + ">
@@ -34,10 +31,9 @@
                 ) AS recommend_score
             </otherwise>
         </choose>
-
         FROM community_posts cp
+        LEFT JOIN users u ON cp.user_id = u.user_id
         WHERE cp.status = #{approvedStatus}
-
         ORDER BY
         <choose>
             <when test="isColdStart == true">
@@ -47,20 +43,7 @@
                 recommend_score DESC, (cp.like_count * 2 + cp.comment_count * 5) DESC
             </otherwise>
         </choose>
-
         LIMIT 50
-    </select>
-
-    <select id="selectRecommendedPosts" resultType="org.project.pet_health.entity.CommunityPosts">
-        SELECT
-            cp.*,
-            u.nickname,
-            u.avatar,
-            ...
-            FROM community_posts cp
-            LEFT JOIN users u ON cp.user_id = u.id
-        WHERE cp.status = #{approvedStatus}
-            ...
     </select>
 
 </mapper>
