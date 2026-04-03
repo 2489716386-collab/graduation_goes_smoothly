@@ -5,7 +5,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.project.pet_health.entity.CommunityPosts;
-import org.project.pet_health.service.impl.CommunityPostsServiceImpl;
+import org.project.pet_health.enums.AuditStatus;
+import org.project.pet_health.service.impl.CommunityPostsServiceImpl.KeywordWeight;
 
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ public interface CommunityPostsMapper extends BaseMapper<CommunityPosts> {
     List<CommunityPosts> selectRecommendedPosts(
             @Param("isColdStart") boolean isColdStart,
             @Param("petBreeds") List<String> petBreeds,
-            @Param("keywordWeights") List<CommunityPostsServiceImpl.KeywordWeight> keywordWeights
+            @Param("keywordWeights") List<KeywordWeight> keywordWeights,
+            @Param("approvedStatus") AuditStatus approvedStatus // 👈 新增参数
     );
 }

@@ -1,7 +1,6 @@
 package org.project.pet_health.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -187,34 +186,42 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
 
         // 3. 调用 Mapper 执行动态 SQL 查询
         // 参数：是否冷启动、宠物特征列表、带权重的历史搜索词列表
-        return communityPostsMapper.selectRecommendedPosts(isColdStart, petBreeds, keywordWeights);
+// 3. 调用 Mapper 执行动态 SQL 查询 (传入 AuditStatus.APPROVED)
+        return communityPostsMapper.selectRecommendedPosts(
+                isColdStart,
+                petBreeds,
+                keywordWeights,
+                org.project.pet_health.enums.AuditStatus.APPROVED );// 👈 传给 XML 的枚举return communityPostsMapper.selectRecommendedPosts(isColdStart, petBreeds, keywordWeights);
     }
 
     /**
      * 搜索动态并记录搜索历史
      */
+    @Override
     public List<CommunityPosts> searchPosts(String keyword, String sort, Long userId) {
-        // 1. 如果用户已登录且搜索词不为空，将关键词写入 search_history 表
+        // 1. 记录历史
         if (userId != null && keyword != null && !keyword.trim().isEmpty()) {
             SearchHistoryEntity history = new SearchHistoryEntity();
             history.setUserId(userId);
             history.setKeyword(keyword.trim());
-            history.setCreateTime(LocalDateTime.now());
+            history.setCreateTime(java.time.LocalDateTime.now());
             searchHistoryMapper.insert(history);
         }
 
-        // 2. 构建模糊查询条件 (内容包含关键词，或者标签包含关键词)
-        QueryWrapper<CommunityPosts> wrapper = new QueryWrapper<>();
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            wrapper.and(w -> w.like("content", keyword).or().like("tags", keyword));
+        // 2. 构造查询 (修复点：使用枚举对象 AuditStatus.APPROVED)
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<CommunityPosts> wrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+
+        // MyBatis-Plus 会自动将枚举转为正确的数据库值 (例如 1)
+        wrapper.eq(CommunityPosts::getStatus, org.project.pet_health.enums.AuditStatus.APPROVED);
+
+        if (org.springframework.util.StringUtils.hasText(keyword)) {
+            wrapper.like(CommunityPosts::getContent, keyword.trim());
         }
 
-        // 3. 根据前端传来的 sort 参数进行排序
+        // 3. 排序
         if ("time".equals(sort)) {
-            // 时间优先：最新发布的在前面
-            wrapper.orderByDesc("create_time");
+            wrapper.orderByDesc(CommunityPosts::getCreateTime);
         } else {
-            // 热度优先：使用 MyBatis-Plus 的 last() 直接追加底层 SQL 进行计算排序
             wrapper.last("ORDER BY (like_count * 2 + comment_count * 5) DESC");
         }
 
