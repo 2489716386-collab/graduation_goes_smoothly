@@ -25,7 +25,7 @@ public class AutoGenerator {
 
     // ========== 生成配置（包含你所有表） ==========
     private static final String[] TABLE_NAMES = {
-            "interaction_notifications"
+            "care_knowledge_base","care_plans_week","care_plans_day"
     };
     private static final String TABLE_PREFIX = ""; // 表无前缀，留空
 

@@ -5,14 +5,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * <p>
- *  前端控制器
+ * 每日养护打卡任务表 前端控制器
  * </p>
  *
  * @author weiling
- * @since 2026-03-11
+ * @since 2026-04-06
  */
 @RestController
-@RequestMapping("/care-plans")
-public class CarePlansController {
+@RequestMapping("/care-plans-day-entity")
+public class CarePlansDayController {
 
 }
