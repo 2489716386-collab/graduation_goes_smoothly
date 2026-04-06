@@ -46,20 +46,19 @@ public class CarePlansWeekController {
                         .eq(CarePlansWeekEntity::getIsCurrent, 1) // 1代表当前生效的计划
                         .last("LIMIT 1")
         );
-        // 注意：这里如果没有查到（宠物刚添加，还没生成过计划），返回 null 也是正常的，前端有防御逻辑
         return Result.success(currentPlan);
     }
 
 
     //查询历史周计划列表（用于 history.vue 列表展示）
-    @GetMapping("/history/{petId}")
-    public Result<List<CarePlansWeekEntity>> getHistoryWeeks(@PathVariable Long petId) {
-        List<CarePlansWeekEntity> list = weekService.list(
+    @GetMapping("/history-list/{petId}")
+    public Result<List<CarePlansWeekEntity>> getHistoryList(@PathVariable Long petId) {
+        List<CarePlansWeekEntity> history = weekService.list(
                 new LambdaQueryWrapper<CarePlansWeekEntity>()
                         .eq(CarePlansWeekEntity::getPetId, petId)
-                        .eq(CarePlansWeekEntity::getIsCurrent, 0) // 仅查询历史记录
-                        .orderByDesc(CarePlansWeekEntity::getCreateTime)
+                        .eq(CarePlansWeekEntity::getIsCurrent, 0) // 0代表历史计划
+                        .orderByDesc(CarePlansWeekEntity::getCreateTime) // 按生成时间倒序排列
         );
-        return Result.success(list);
+        return Result.success(history);
     }
 }
