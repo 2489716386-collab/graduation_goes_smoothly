@@ -84,8 +84,8 @@ public class CarePlansDayEntity implements Serializable {
      * 打卡状态(0未完成, 1已完成)
      */
     @TableField("is_completed")
-    @Schema(description ="打卡状态(0未完成, 1已完成)")
-    private Boolean isCompleted;
+    @Schema(description ="打卡进度")
+    private Integer isCompleted;
 
     /**
      * 实际打卡时间

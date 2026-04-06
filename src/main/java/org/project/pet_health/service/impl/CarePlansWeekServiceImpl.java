@@ -119,7 +119,7 @@ public class CarePlansWeekServiceImpl extends ServiceImpl<CarePlansWeekMapper, C
                 day.setDayOfWeek(date.getDayOfWeek().getValue());
                 day.setTaskCategory(task.getString("category"));
                 day.setTaskContent(task.getString("content"));
-                day.setIsCompleted(false);
+                day.setIsCompleted(0);
                 dayEntities.add(day);
             }
         }
