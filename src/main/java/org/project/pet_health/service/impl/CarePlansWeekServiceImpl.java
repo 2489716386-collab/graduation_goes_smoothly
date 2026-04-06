@@ -6,16 +6,14 @@ import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.project.pet_health.dto.PlanGenerateDTO;
 import org.project.pet_health.dto.PlanImportDTO;
-import org.project.pet_health.entity.CareKnowledgeBaseEntity;
-import org.project.pet_health.entity.CarePlansDayEntity;
-import org.project.pet_health.entity.CarePlansWeekEntity;
+import org.project.pet_health.entity.*;
+import org.project.pet_health.exception.UserException;
 import org.project.pet_health.mapper.CareKnowledgeBaseMapper;
 import org.project.pet_health.mapper.CarePlansWeekMapper;
-import org.project.pet_health.service.AiService;
-import org.project.pet_health.service.CarePlansDayService;
-import org.project.pet_health.service.CarePlansWeekService;
+import org.project.pet_health.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +34,7 @@ import java.util.List;
  */
 // service/impl/CarePlansWeekServiceImpl.java
 @Service
+@Slf4j
 public class CarePlansWeekServiceImpl extends ServiceImpl<CarePlansWeekMapper, CarePlansWeekEntity> implements CarePlansWeekService {
 
     @Autowired
@@ -47,82 +46,127 @@ public class CarePlansWeekServiceImpl extends ServiceImpl<CarePlansWeekMapper, C
     @Autowired
     private CarePlansDayService dayService;
 
+    @Autowired
+    private PetsService petsService;
+
+    @Autowired
+    private PetBreedsService breedsService;
+
     @Override
     public String generatePreview(PlanGenerateDTO dto) {
-        // 1. 检索知识库（参照你 Entity 的 species, breed 字段）
+        // 1. 获取宠物基础信息（从 pets 表）
+        Pets pet = petsService.getById(dto.getPetId());
+        if (pet == null) {
+            throw new UserException("未找到对应的宠物信息");
+        }
+
+        // 2. 转换品种 ID 为名称
+        String breedName = "普通宠物";
+        if (pet.getBreedId() != null) {
+            PetBreeds breed = breedsService.getById(pet.getBreedId());
+            if (breed != null) {
+                breedName = breed.getBreedName();
+            }
+        }
+
+        // 3. 计算年龄（根据 birthDate 实时计算）
+        int age = 0;
+        if (pet.getBirthDate() != null) {
+            age = LocalDate.now().getYear() - pet.getBirthDate().getYear();
+            age = Math.max(0, age); // 确保年龄不为负数
+        }
+
+        // 4. 从知识库检索该品种的养护标准建议
         CareKnowledgeBaseEntity advice = knowledgeBaseMapper.selectOne(
                 new LambdaQueryWrapper<CareKnowledgeBaseEntity>()
-                        .eq(CareKnowledgeBaseEntity::getBreed, dto.getBreed())
+                        .eq(CareKnowledgeBaseEntity::getBreed, breedName) // 按名称匹配知识库
                         .last("LIMIT 1")
         );
 
-        // 2. 构造 AI 提示词
+        // 5. 构造系统级提示词 (System Prompt)
         String systemPrompt = "你是一位专业的执业兽医师。请根据宠物资料和知识库规范生成一份详细的周养护计划。\n" +
-                "你必须返回合法的 JSON 格式，结构如下：\n" +
+                "你必须返回合法的 JSON 格式，结构必须如下：\n" +
                 "{\n" +
                 "  \"weekly_focus\": \"本周养护核心建议\",\n" +
                 "  \"daily_tasks\": [{\"category\": \"饮食\", \"content\": \"任务描述\"}]\n" +
                 "}";
 
+        // 6. 构造用户提示词 (User Prompt) - 使用查询到的真实数据
         StringBuilder userPrompt = new StringBuilder();
-        userPrompt.append(String.format("宠物信息：品种-%s，年龄-%s，体重-%skg，健康现状-%s。",
-                dto.getBreed(), dto.getAge(), dto.getWeight(), dto.getHealthStatus()));
+        userPrompt.append(String.format("宠物信息：品种-%s，年龄-%d岁，体重-%skg，健康现状-%s。",
+                breedName, age, pet.getWeight(), dto.getHealthStatus()));
 
         if (advice != null) {
-            userPrompt.append("\n【知识库参考建议】：").append(advice.getDietAdvice())
-                    .append("\n【禁忌】：").append(advice.getCaution());
+            userPrompt.append("\n【医学参考建议】：").append(advice.getDietAdvice())
+                    .append("\n【禁忌事项】：").append(advice.getCaution());
         }
 
+        // 如果用户提交了“不满意”的反馈，追加到 Prompt 尾部
         if (StringUtils.hasText(dto.getFeedback())) {
             userPrompt.append("\n【用户调整反馈】：").append(dto.getFeedback());
         }
 
-        // 3. 调用 AI 实现类
+        // 7. 调用 AI 实现类并返回结果
+        log.info("正在为宠物 {} 生成 AI 养护计划预览...", pet.getName());
         return aiService.getCarePlanFromAi(systemPrompt, userPrompt.toString());
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class) // 确保数据一致性
-    public void confirmAndImport(PlanImportDTO importDto) {
-        PlanGenerateDTO snap = importDto.getSnapshot();
+    @Transactional(rollbackFor = Exception.class)
+    public void confirmAndImport(PlanImportDTO dto) {
+        // 【关键点】从 dto 中取出嵌套的 snapshot 对象
+        // 报错找不到符号是因为之前直接用 dto.getPetId()，现在需要用 snapshot.getPetId()
+        PlanGenerateDTO snapshot = dto.getSnapshot();
 
-        // 1. 将该宠物原有的周计划设为历史记录 (is_current = 0)
+        if (snapshot == null) {
+            throw new UserException("宠物快照信息缺失");
+        }
+
+        // --- ① 同步更新 pets 表中的体重 ---
+        Pets petUpdate = new Pets();
+        // 参照你之前的指正，主键 setter 是 setPetid
+        petUpdate.setPetId(snapshot.getPetId());
+        petUpdate.setWeight(snapshot.getWeight());
+        petsService.updateById(petUpdate);
+
+        // --- ② 将该宠物原有的周计划设为历史记录 ---
         this.update(new LambdaUpdateWrapper<CarePlansWeekEntity>()
-                .eq(CarePlansWeekEntity::getPetId, snap.getPetId())
+                .eq(CarePlansWeekEntity::getPetId, snapshot.getPetId())
                 .set(CarePlansWeekEntity::getIsCurrent, 0));
 
-        // 2. 保存新的周计划快照
-        JSONObject aiJson = JSON.parseObject(importDto.getAiResultJson());
+        // --- ③ 保存新的周计划快照 ---
+        JSONObject aiJson = JSON.parseObject(dto.getAiResultJson());
         CarePlansWeekEntity weekPlan = new CarePlansWeekEntity();
-        weekPlan.setPetId(snap.getPetId());
-        weekPlan.setSnapshotAge(snap.getAge());
-        weekPlan.setSnapshotWeight(BigDecimal.valueOf(snap.getWeight()));
-        weekPlan.setSnapshotHealthStatus(snap.getHealthStatus());
+        weekPlan.setPetId(snapshot.getPetId());
+        // 记录生成计划时的“瞬时状态”
+        weekPlan.setSnapshotAge(snapshot.getAge());
+        weekPlan.setSnapshotWeight(BigDecimal.valueOf(snapshot.getWeight()));
+        weekPlan.setSnapshotHealthStatus(snapshot.getHealthStatus());
+
         weekPlan.setWeeklyFocus(aiJson.getString("weekly_focus"));
         weekPlan.setStartDate(LocalDate.now());
         weekPlan.setEndDate(LocalDate.now().plusDays(6));
         weekPlan.setIsCurrent(true);
         this.save(weekPlan);
 
-        // 3. 任务裂变：生成未来 7 天的每日打卡任务
+        // --- ④ 任务裂变：生成未来 7 天的任务记录 ---
         JSONArray dailyTasks = aiJson.getJSONArray("daily_tasks");
-        List<CarePlansDayEntity> dayEntities = new ArrayList<>();
-
+        List<CarePlansDayEntity> dayList = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
-            LocalDate date = LocalDate.now().plusDays(i);
+            LocalDate targetDate = LocalDate.now().plusDays(i);
             for (int j = 0; j < dailyTasks.size(); j++) {
-                JSONObject task = dailyTasks.getJSONObject(j);
+                JSONObject taskObj = dailyTasks.getJSONObject(j);
                 CarePlansDayEntity day = new CarePlansDayEntity();
                 day.setWeekPlanId(weekPlan.getId());
-                day.setPetId(snap.getPetId());
-                day.setPlanDate(date);
-                day.setDayOfWeek(date.getDayOfWeek().getValue());
-                day.setTaskCategory(task.getString("category"));
-                day.setTaskContent(task.getString("content"));
-                day.setIsCompleted(0);
-                dayEntities.add(day);
+                day.setPetId(snapshot.getPetId());
+                day.setPlanDate(targetDate);
+                day.setDayOfWeek(targetDate.getDayOfWeek().getValue());
+                day.setTaskCategory(taskObj.getString("category"));
+                day.setTaskContent(taskObj.getString("content"));
+                day.setIsCompleted(0); // 初始百分比为 0
+                dayList.add(day);
             }
         }
-        dayService.saveBatch(dayEntities);
+        dayService.saveBatch(dayList);
     }
 }

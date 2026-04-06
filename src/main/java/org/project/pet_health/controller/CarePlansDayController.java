@@ -1,10 +1,14 @@
 package org.project.pet_health.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.project.pet_health.common.Result;
 import org.project.pet_health.dto.CarePlansDayProgressDTO;
+import org.project.pet_health.entity.CarePlansDayEntity;
 import org.project.pet_health.service.CarePlansDayService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * <p>
@@ -37,5 +41,18 @@ public class CarePlansDayController {
     public Result<Integer> doCheckIn(@PathVariable Long taskId) {
         int newProgress = carePlansDayService.toggleCheckIn(taskId);
         return Result.success(newProgress);
+    }
+    /**
+     * 查询指定周的详细日计划（用于查看历史详情）
+     */
+
+    @GetMapping("/week-details/{weekPlanId}")
+    public Result<List<CarePlansDayEntity>> getDayPlansByWeek(@PathVariable Long weekPlanId) {
+        List<CarePlansDayEntity> list = carePlansDayService.list(
+                new LambdaQueryWrapper<CarePlansDayEntity>()
+                        .eq(CarePlansDayEntity::getWeekPlanId, weekPlanId)
+                        .orderByAsc(CarePlansDayEntity::getPlanDate)
+        );
+        return Result.success(list);
     }
 }

@@ -1,14 +1,15 @@
 package org.project.pet_health.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.project.pet_health.common.Result;
 import org.project.pet_health.dto.PlanGenerateDTO;
 import org.project.pet_health.dto.PlanImportDTO;
+import org.project.pet_health.entity.CarePlansWeekEntity;
 import org.project.pet_health.service.CarePlansWeekService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * <p>
@@ -34,5 +35,18 @@ public class CarePlansWeekController {
     public Result<Void> doImport(@RequestBody PlanImportDTO dto) {
         weekService.confirmAndImport(dto);
         return Result.success();
+    }
+
+
+    //查询历史周计划列表（用于 history.vue 列表展示）
+    @GetMapping("/history/{petId}")
+    public Result<List<CarePlansWeekEntity>> getHistoryWeeks(@PathVariable Long petId) {
+        List<CarePlansWeekEntity> list = weekService.list(
+                new LambdaQueryWrapper<CarePlansWeekEntity>()
+                        .eq(CarePlansWeekEntity::getPetId, petId)
+                        .eq(CarePlansWeekEntity::getIsCurrent, 0) // 仅查询历史记录
+                        .orderByDesc(CarePlansWeekEntity::getCreateTime)
+        );
+        return Result.success(list);
     }
 }
