@@ -117,17 +117,24 @@ public class CarePlansWeekServiceImpl extends ServiceImpl<CarePlansWeekMapper, C
         // 【关键点】从 dto 中取出嵌套的 snapshot 对象
         // 报错找不到符号是因为之前直接用 dto.getPetId()，现在需要用 snapshot.getPetId()
         PlanGenerateDTO snapshot = dto.getSnapshot();
+        Long petId = snapshot.getPetId();
 
-        if (snapshot == null) {
-            throw new UserException("宠物快照信息缺失");
+        //先查出这只宠物，主要为了拿 user_id，顺便更新体重
+        Pets pet = petsService.getById(petId);
+        if (pet == null) {
+            throw new UserException("宠物不存在");
         }
 
-        // --- ① 同步更新 pets 表中的体重 ---
-        Pets petUpdate = new Pets();
-        // 参照你之前的指正，主键 setter 是 setPetid
-        petUpdate.setPetId(snapshot.getPetId());
-        petUpdate.setWeight(snapshot.getWeight());
-        petsService.updateById(petUpdate);
+//        // --- ① 同步更新 pets 表中的体重 ---
+//        Pets petUpdate = new Pets();
+//        // 参照你之前的指正，主键 setter 是 setPetid
+//        petUpdate.setPetId(snapshot.getPetId());
+//        petUpdate.setWeight(snapshot.getWeight());
+//        petsService.updateById(petUpdate);
+
+        // 👇 2. 顺手完成需求：将前端新输入的体重和健康状态同步更新到宠物档案
+        pet.setWeight(snapshot.getWeight());
+        petsService.updateById(pet); // 更新 pets 表
 
         // --- ② 将该宠物原有的周计划设为历史记录 ---
         this.update(new LambdaUpdateWrapper<CarePlansWeekEntity>()
@@ -138,6 +145,7 @@ public class CarePlansWeekServiceImpl extends ServiceImpl<CarePlansWeekMapper, C
         JSONObject aiJson = JSON.parseObject(dto.getAiResultJson());
         CarePlansWeekEntity weekPlan = new CarePlansWeekEntity();
         weekPlan.setPetId(snapshot.getPetId());
+        weekPlan.setUserId(pet.getUserId());
         // 记录生成计划时的“瞬时状态”
         weekPlan.setSnapshotAge(snapshot.getAge());
         weekPlan.setSnapshotWeight(BigDecimal.valueOf(snapshot.getWeight()));

@@ -27,15 +27,22 @@ public class CarePlansWeekController {
     private CarePlansWeekService weekService;
 
 
-    @PostMapping("/preview")
-    public Result<String> getAiPreview(@RequestBody PlanGenerateDTO dto) {
-        return Result.success(weekService.generatePreview(dto));
+    // 👇 1. 解决 404 的关键：添加 AI 生成预览的 POST 接口
+    @PostMapping("/generate-preview")
+    public Result<String> generatePreview(@RequestBody PlanGenerateDTO dto) {
+        // 调用 Service 层的逻辑
+        String aiJsonResult = weekService.generatePreview(dto);
+        return Result.success(aiJsonResult);
     }
 
-    @PostMapping("/import")
-    public Result<Void> doImport(@RequestBody PlanImportDTO dto) {
+    @PostMapping("/confirm-import")
+    public Result<Boolean> confirmImport(@RequestBody PlanImportDTO dto) {
+
+        // 1. 先独立调用 Service 的方法（因为它没有返回值，所以单独放一行执行）
         weekService.confirmAndImport(dto);
-        return Result.success();
+
+        // 2. 执行成功后，手动给前端返回一个 true (或者直接用无参的 Result.success())
+        return Result.success(true);
     }
 
     @GetMapping("/current/{petId}")

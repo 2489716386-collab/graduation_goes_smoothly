@@ -1,8 +1,9 @@
 package org.project.pet_health.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import org.project.pet_health.dto.CarePlansDayProgressDTO;
 import org.project.pet_health.entity.CarePlansDayEntity;
+
+import java.util.List;
 
 /**
  * <p>
@@ -14,9 +15,9 @@ import org.project.pet_health.entity.CarePlansDayEntity;
  */
 public interface CarePlansDayService extends IService<CarePlansDayEntity> {
 
-    // 执行/取消打卡，并返回最新的进度百分比
-    int toggleCheckIn(Long taskId);
+    // 1. 获取今日所有任务（取消百分比，直接返回列表）
+    List<CarePlansDayEntity> getTodayTasks(Long petId);
 
-    // 👇 添加这个方法：获取今日任务及进度
-    CarePlansDayProgressDTO getTodayPlanProgress(Long petId);
+    // 2. 新增：用户点击打卡单条任务
+    boolean checkInTask(Long taskId);
 }

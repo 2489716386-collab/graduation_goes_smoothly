@@ -2,7 +2,6 @@ package org.project.pet_health.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.project.pet_health.common.Result;
-import org.project.pet_health.dto.CarePlansDayProgressDTO;
 import org.project.pet_health.entity.CarePlansDayEntity;
 import org.project.pet_health.service.CarePlansDayService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,39 +24,23 @@ public class CarePlansDayController {
     @Autowired
     private CarePlansDayService carePlansDayService;
 
-    /**
-     * 查询宠物今日任务及百分比进度
-     */
+    // 👇 1. 获取今日任务列表 (已取消百分比 DTO)
     @GetMapping("/today-plan/{petId}")
-    public Result<CarePlansDayProgressDTO> getTodayPlan(@PathVariable Long petId) {
-        CarePlansDayProgressDTO dto = carePlansDayService.getTodayPlanProgress(petId);
-        return Result.success(dto);
+    public Result<List<CarePlansDayEntity>> getTodayPlan(@PathVariable Long petId) {
+        List<CarePlansDayEntity> tasks = carePlansDayService.getTodayTasks(petId);
+        return Result.success(tasks);
     }
 
-    /**
-     * 点击任务打卡
-     * 返回值：该宠物今日最新的百分比进度
-     */
+    // 👇 2. 新增：单条任务打卡接口
     @PostMapping("/check-in/{taskId}")
-    public Result<Integer> doCheckIn(@PathVariable Long taskId) {
-        int newProgress = carePlansDayService.toggleCheckIn(taskId);
-        return Result.success(newProgress);
+    public Result<Boolean> checkInTask(@PathVariable Long taskId) {
+        boolean success = carePlansDayService.checkInTask(taskId);
+        return Result.success(success);
     }
     /**
      * 查询指定周的详细日计划（用于查看历史详情）
      */
-
-//    @GetMapping("/week-details/{weekPlanId}")
-//    public Result<List<CarePlansDayEntity>> getDayPlansByWeek(@PathVariable Long weekPlanId) {
-//        List<CarePlansDayEntity> list = carePlansDayService.list(
-//                new LambdaQueryWrapper<CarePlansDayEntity>()
-//                        .eq(CarePlansDayEntity::getWeekPlanId, weekPlanId)
-//                        .orderByAsc(CarePlansDayEntity::getPlanDate)
-//        );
-//        return Result.success(list);
-//    }
-
-    // 👇 查询这周每天的具体任务
+        // 👇 查询这周每天的具体任务
     @GetMapping("/week-details/{weekPlanId}")
     public Result<List<CarePlansDayEntity>> getWeekDetails(@PathVariable Long weekPlanId) {
         List<CarePlansDayEntity> list = carePlansDayService.list(
