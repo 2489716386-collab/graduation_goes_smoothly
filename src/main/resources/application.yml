@@ -34,3 +34,8 @@ wechat:
 #mybatis-plus:
 #  configuration:
 #    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #开启sql日志
+
+deepseek:
+  api-key: sk-16bf97fd32cf45c088c4386aa97e0b5b
+  api-url: https://api.deepseek.com/chat/completions
+  model: deepseek-chat

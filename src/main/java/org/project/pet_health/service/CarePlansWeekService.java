@@ -1,7 +1,9 @@
 package org.project.pet_health.service;
 
-import org.project.pet_health.entity.CarePlansWeekEntity;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.project.pet_health.dto.PlanGenerateDTO;
+import org.project.pet_health.dto.PlanImportDTO;
+import org.project.pet_health.entity.CarePlansWeekEntity;
 
 /**
  * <p>
@@ -12,5 +14,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @since 2026-04-06
  */
 public interface CarePlansWeekService extends IService<CarePlansWeekEntity> {
-
+    String generatePreview(PlanGenerateDTO dto);
+    void confirmAndImport(PlanImportDTO importDto);
 }
