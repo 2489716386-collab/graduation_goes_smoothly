@@ -13,9 +13,10 @@ import org.project.pet_health.entity.CarePlansDayEntity;
  * @since 2026-04-06
  */
 public interface CarePlansDayService extends IService<CarePlansDayEntity> {
-    // 获取某宠物今日的计划详情及进度
-    CarePlansDayProgressDTO getTodayPlan(Long petId);
 
     // 执行/取消打卡，并返回最新的进度百分比
     int toggleCheckIn(Long taskId);
+
+    // 👇 添加这个方法：获取今日任务及进度
+    CarePlansDayProgressDTO getTodayPlanProgress(Long petId);
 }

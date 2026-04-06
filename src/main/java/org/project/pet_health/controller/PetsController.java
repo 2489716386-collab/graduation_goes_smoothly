@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.project.pet_health.common.Result;
+import org.project.pet_health.dto.PetDTO;
 import org.project.pet_health.entity.Pets;
 import org.project.pet_health.service.PetsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,9 +49,9 @@ public class PetsController {
         return Result.success("宠物已删除");
     }
 
-    @GetMapping("/user/detail/{petId}")
+    @GetMapping("/user/{petId}")
     @Operation(summary = "获取单只宠物详情")
-    public Result getPetDetail(@PathVariable Long petId, HttpServletRequest request) {
+    public Result<PetDTO> getPetDetail(@PathVariable Long petId, HttpServletRequest request) {
         // 出于数据安全考虑，在Service层最好校验一下这个petId是否属于当前userId
         Long userId = (Long) request.getAttribute("currentUserId");
         Pets pet = petsService.getById(petId);
@@ -58,5 +59,10 @@ public class PetsController {
             return Result.success(pet);
         }
         return Result.error("宠物不存在或无权访问");
+    }
+    @GetMapping("/{id}")
+    public Result<PetDTO> getPetDetail(@PathVariable Long id) {
+        // 你的 service 里如果有 getPetDetail 就调用，没有就直接复用 getById 包装成 DTO
+        return Result.success(petsService.getPetDetail(id));
     }
 }

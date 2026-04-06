@@ -19,4 +19,6 @@ public interface PetsService extends IService<Pets> {
     void addMyPet(Pets pet, Long userId);
     void updateMyPet(Pets pet, Long userId);
     void deleteMyPet(Long petId, Long userId);
+    // 👇 必须加上这一行：根据ID查询单个宠物详情
+    PetDTO getPetDetail(Long id);
 }

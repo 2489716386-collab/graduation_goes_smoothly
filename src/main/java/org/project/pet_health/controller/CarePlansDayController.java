@@ -30,7 +30,8 @@ public class CarePlansDayController {
      */
     @GetMapping("/today-plan/{petId}")
     public Result<CarePlansDayProgressDTO> getTodayPlan(@PathVariable Long petId) {
-        return Result.success(carePlansDayService.getTodayPlan(petId));
+        CarePlansDayProgressDTO dto = carePlansDayService.getTodayPlanProgress(petId);
+        return Result.success(dto);
     }
 
     /**
@@ -46,12 +47,23 @@ public class CarePlansDayController {
      * 查询指定周的详细日计划（用于查看历史详情）
      */
 
+//    @GetMapping("/week-details/{weekPlanId}")
+//    public Result<List<CarePlansDayEntity>> getDayPlansByWeek(@PathVariable Long weekPlanId) {
+//        List<CarePlansDayEntity> list = carePlansDayService.list(
+//                new LambdaQueryWrapper<CarePlansDayEntity>()
+//                        .eq(CarePlansDayEntity::getWeekPlanId, weekPlanId)
+//                        .orderByAsc(CarePlansDayEntity::getPlanDate)
+//        );
+//        return Result.success(list);
+//    }
+
+    // 👇 查询这周每天的具体任务
     @GetMapping("/week-details/{weekPlanId}")
-    public Result<List<CarePlansDayEntity>> getDayPlansByWeek(@PathVariable Long weekPlanId) {
+    public Result<List<CarePlansDayEntity>> getWeekDetails(@PathVariable Long weekPlanId) {
         List<CarePlansDayEntity> list = carePlansDayService.list(
                 new LambdaQueryWrapper<CarePlansDayEntity>()
                         .eq(CarePlansDayEntity::getWeekPlanId, weekPlanId)
-                        .orderByAsc(CarePlansDayEntity::getPlanDate)
+                        .orderByAsc(CarePlansDayEntity::getPlanDate) // 必须按日期排序，前端才能正确分组
         );
         return Result.success(list);
     }

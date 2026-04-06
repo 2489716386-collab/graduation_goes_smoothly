@@ -12,7 +12,6 @@ import lombok.ToString;
 
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 /**
  * <p>
@@ -86,11 +85,4 @@ public class CarePlansDayEntity implements Serializable {
     @TableField("is_completed")
     @Schema(description ="打卡进度")
     private Integer isCompleted;
-
-    /**
-     * 实际打卡时间
-     */
-    @Schema(description ="实际打卡时间")
-    @TableField("complete_time")
-    private LocalDateTime completeTime;
 }

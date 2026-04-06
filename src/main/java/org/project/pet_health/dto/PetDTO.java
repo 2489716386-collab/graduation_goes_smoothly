@@ -1,12 +1,14 @@
 package org.project.pet_health.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.LocalDate;
 
 @Data
 public class PetDTO {
-    //前端需要
+    //
+    @JsonProperty("petid")
     private Long petid;
     private String name;
     private String avatar;

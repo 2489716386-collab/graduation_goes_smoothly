@@ -27,18 +27,30 @@ import java.util.List;
 public class CarePlansDayServiceImpl extends ServiceImpl<CarePlansDayMapper, CarePlansDayEntity> implements CarePlansDayService {
 
     @Override
-    public CarePlansDayProgressDTO getTodayPlan(Long petId) {
-        // 1. 查找该宠物今日的所有任务
+    public CarePlansDayProgressDTO getTodayPlanProgress(Long petId) {
+        // 1. 获取系统今天的日期
+        LocalDate today = LocalDate.now();
+
+        // 2. 从数据库中查询该宠物今天的全部任务
         List<CarePlansDayEntity> tasks = this.list(new LambdaQueryWrapper<CarePlansDayEntity>()
                 .eq(CarePlansDayEntity::getPetId, petId)
-                .eq(CarePlansDayEntity::getPlanDate, LocalDate.now()));
+                .eq(CarePlansDayEntity::getPlanDate, today) // 仅限今天
+                .orderByAsc(CarePlansDayEntity::getId));
 
-        // 2. 计算进度百分比
-        int progress = calculateProgress(tasks);
+        // 3. 计算完成进度百分比 (0 ~ 100)
+        int progress = 0;
+        if (tasks != null && !tasks.isEmpty()) {
+            long completedCount = tasks.stream()
+                    .filter(t -> t.getIsCompleted() != null && t.getIsCompleted() == 1) // 统计已完成的(isCompleted = 1)
+                    .count();
+            progress = (int) ((completedCount * 100) / tasks.size());
+        }
 
+        // 4. 封装成 DTO 返回给前端
         CarePlansDayProgressDTO dto = new CarePlansDayProgressDTO();
         dto.setTasks(tasks);
         dto.setProgress(progress);
+
         return dto;
     }
 
