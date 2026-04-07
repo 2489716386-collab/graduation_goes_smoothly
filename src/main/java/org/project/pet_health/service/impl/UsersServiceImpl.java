@@ -10,12 +10,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.project.pet_health.dto.AdminLoginDTO;
 import org.project.pet_health.dto.PageInfo;
 import org.project.pet_health.dto.UserBanDTO;
+import org.project.pet_health.entity.CommunityPosts;
+import org.project.pet_health.entity.LikesEntity;
 import org.project.pet_health.entity.UserBlacklist;
 import org.project.pet_health.entity.Users;
 import org.project.pet_health.enums.StatusType;
 import org.project.pet_health.exception.UserException;
 import org.project.pet_health.mapper.UserBlacklistMapper;
 import org.project.pet_health.mapper.UsersMapper;
+import org.project.pet_health.service.CommunityPostsService;
 import org.project.pet_health.service.UsersService;
 import org.project.pet_health.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +28,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements UsersService {
@@ -32,6 +39,12 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     // 注入黑名单的 Mapper，防止 Service 循环注入
     @Autowired
     private UserBlacklistMapper userBlacklistMapper;
+
+    @Autowired
+    private CommunityPostsService communityPostsService;
+
+    @Autowired
+    private org.project.pet_health.mapper.LikesMapper likesMapper;
 
     @Autowired
     private HttpServletRequest request; // 注入 request
@@ -174,5 +187,45 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         // 5. 生成 JWT Token 返回给前端
         // 修改点2：直接调用你 JwtUtil 里的 generateToken 方法，传入 user 实体即可
         return JwtUtil.generateToken(user);
+    }
+
+    @Override
+    public Map<String, Long> getUserStats(Long userId) {
+        // 1. 统计动态数量：直接 count 该用户发的帖子
+        long postCount = communityPostsService.count(
+                new LambdaQueryWrapper<CommunityPosts>()
+                        .eq(CommunityPosts::getUserId, userId)
+        );
+
+        // 2. 统计获赞总数
+        long likeCount = 0;
+
+        // 先查出该用户发的所有帖子的 ID
+        List<CommunityPosts> myPosts = communityPostsService.list(
+                new LambdaQueryWrapper<CommunityPosts>()
+                        .select(CommunityPosts::getPostId) // 为了性能，只查 ID 字段
+                        .eq(CommunityPosts::getUserId, userId)
+        );
+
+        // 如果发过帖子，就去点赞表里查这些帖子被点赞的次数
+        // 如果发过帖子，就去点赞表里查这些帖子被点赞的次数
+        if (myPosts != null && !myPosts.isEmpty()) {
+            List<Long> postIds = myPosts.stream()
+                    .map(CommunityPosts::getPostId)
+                    .collect(Collectors.toList());
+
+            // 👇 这里把 likesService.count 改成 likesMapper.selectCount
+            likeCount = likesMapper.selectCount(
+                    new LambdaQueryWrapper<LikesEntity>()
+                            .in(LikesEntity::getPostId, postIds)
+            );
+        }
+
+        // 3. 把两个数字装到 Map 里返回
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("postCount", postCount);
+        stats.put("likeCount", likeCount);
+
+        return stats;
     }
 }

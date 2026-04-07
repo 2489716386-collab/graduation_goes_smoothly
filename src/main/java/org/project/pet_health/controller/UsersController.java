@@ -53,4 +53,14 @@ public class UsersController {
         usersService.updateUserProfile(user, userId);
         return Result.success("资料修改成功");
     }
+
+    @GetMapping("/user/stats")
+    @Operation(summary = "获取用户的动态数和获赞总数")
+    public Result getUserStats(HttpServletRequest request) {
+        // 1. 获取当前登录用户的 ID
+        Long userId = (Long) request.getAttribute("currentUserId");
+
+        // 2. 直接调用 Service 层获取装配好的统计数据，极其优雅
+        return Result.success(usersService.getUserStats(userId));
+    }
 }
