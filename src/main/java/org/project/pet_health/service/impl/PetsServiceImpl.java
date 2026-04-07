@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -112,5 +113,27 @@ public class PetsServiceImpl extends ServiceImpl<PetsMapper, Pets> implements Pe
         }
 
         return dto;
+    }
+
+    public List<PetDTO> getMyPetDTOs(Long userId) {
+        // 1. 查出该用户的所有宠物实体
+        List<Pets> pets = this.list(new LambdaQueryWrapper<Pets>().eq(Pets::getUserId, userId));
+
+        // 2. 转换为 DTO 并查出品种名字
+        List<PetDTO> dtoList = new ArrayList<>();
+        for (Pets pet : pets) {
+            PetDTO dto = new PetDTO();
+            BeanUtils.copyProperties(pet, dto); // 拷贝基础属性
+
+            // 3. 去品种表查名字
+            PetBreeds breed = petBreedsService.getById(pet.getBreedId());
+            if (breed != null) {
+                dto.setBreedName(breed.getBreedName());
+            } else {
+                dto.setBreedName("未知品种");
+            }
+            dtoList.add(dto);
+        }
+        return dtoList;
     }
 }

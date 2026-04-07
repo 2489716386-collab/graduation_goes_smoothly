@@ -44,4 +44,5 @@ public class Notifications implements Serializable {
 
     @TableField(value = "create_time",fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+
 }

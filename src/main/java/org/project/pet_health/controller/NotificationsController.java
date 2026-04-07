@@ -1,12 +1,16 @@
 package org.project.pet_health.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.project.pet_health.common.Result;
 import org.project.pet_health.common.annotation.LogAction;
 import org.project.pet_health.entity.Notifications;
+import org.project.pet_health.entity.Users;
 import org.project.pet_health.enums.NotificationType;
 import org.project.pet_health.service.NotificationsService;
+import org.project.pet_health.service.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +21,9 @@ public class NotificationsController {
 
     @Autowired
     private NotificationsService notificationsService;
+
+    @Autowired
+    private UsersService usersService;
 
     @GetMapping("/admin/page")
     @Operation(summary = "分页条件查询系统通知")
@@ -59,5 +66,49 @@ public class NotificationsController {
             // 捕获 Service 层抛出的异常（比如 Token 解析失败），友好地返回给前端
             return Result.error(e.getMessage());
         }
+    }
+
+    @GetMapping("/user/unread-count")
+    @Operation(summary = "获取未读全局通知数量")
+    public Result getUnreadCount(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+
+        // 1. 查出当前用户的 last_read_notice_id
+        Users user = usersService.getById(userId);
+        Long lastReadId = user.getLastReadNoticeId() != null ? user.getLastReadNoticeId() : 0L;
+
+        // 2. 查出通知表里，id 大于这个 lastReadId 的数量
+        // SQL: SELECT count(*) FROM notifications WHERE notice_id > #{lastReadId} AND target_type = 'ALL'
+        long count = notificationsService.count(
+                new LambdaQueryWrapper<Notifications>()
+                        .gt(Notifications::getNoticeId, lastReadId)
+                // 如果你有 targetType 区分全局和个人，加上这句
+                // .eq(Notifications::getTargetType, "ALL")
+        );
+
+        return Result.success(count);
+    }
+
+    @PostMapping("/user/mark-read")
+    @Operation(summary = "标记所有系统通知为已读")
+    public Result markNoticesRead(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+
+        // 查出现在系统中最新的一条全局通知的 ID
+        Notifications latestNotice = notificationsService.getOne(
+                new LambdaQueryWrapper<Notifications>()
+                        .orderByDesc(Notifications::getNoticeId)
+                        .last("LIMIT 1")
+        );
+
+        if (latestNotice != null) {
+            // 更新用户的 last_read_notice_id
+            Users updateEntity = new Users();
+            updateEntity.setUserId(userId);
+            updateEntity.setLastReadNoticeId(latestNotice.getNoticeId());
+            usersService.updateById(updateEntity);
+        }
+
+        return Result.success("已读状态已更新");
     }
 }

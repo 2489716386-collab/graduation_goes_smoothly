@@ -80,4 +80,8 @@ public class Users implements Serializable {
     @Schema(description = "个人主页背景图")
     @TableField("cover_image")
     private String coverImage;
+
+    @Schema(description = "最后已读公告ID")
+    @TableField("last_read_notice_id")
+    private Long LastReadNoticeId;
 }
