@@ -63,11 +63,16 @@ public class CommunityPosts implements Serializable {
     @TableField(value = "create_time",fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
+    @TableField("content_vector")
+    @Schema(description = "AI语义向量数据")
+    private String contentVector; // 数据库存储 JSON 格式的数组字符串
+
     @TableField(exist = false)
     private String nickname;
 
     @TableField(exist = false)
     private String avatar;
+
 
     // 👇👇👇 补上这两个极其重要的状态字段 👇👇👇
     @Schema(description = "当前用户是否已点赞(前端展示用)")
@@ -83,4 +88,9 @@ public class CommunityPosts implements Serializable {
     @Schema(description = "算法推荐得分(非数据库字段)")
     @TableField(exist = false) // 极其重要：告诉 MyBatisPlus 数据库里没这个列，插入更新时忽略它
     private Integer recommendScore;
+
+
+
+    @TableField(exist = false)
+    private Double similarityScore; // 临时字段：存储计算出的相似度得分
 }

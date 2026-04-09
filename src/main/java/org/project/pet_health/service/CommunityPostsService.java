@@ -30,4 +30,6 @@ public interface CommunityPostsService extends IService<CommunityPosts> {
      * 获取个性化推荐动态
      */
     List<CommunityPosts> searchPosts(String keyword, String sort, Long userId);
+
+    boolean save(CommunityPosts entity);
 }

@@ -5,21 +5,20 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
-import org.project.pet_health.entity.CommunityPosts;
-import org.project.pet_health.entity.Reports;
-import org.project.pet_health.entity.SearchHistoryEntity;
+import org.project.pet_health.entity.*;
 import org.project.pet_health.enums.AuditStatus;
 import org.project.pet_health.enums.ReportStatus;
 import org.project.pet_health.enums.TargetType;
 import org.project.pet_health.mapper.*;
+import org.project.pet_health.service.AiService;
 import org.project.pet_health.service.CommunityPostsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper, CommunityPosts> implements CommunityPostsService {
@@ -37,6 +36,9 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
     private SearchHistoryMapper searchHistoryMapper;
     @Resource
     private UsersMapper usersMapper;
+
+    @Resource
+    private AiService aiService; // 注入你刚改好的 AI 服务
 
     @Override
     public Page<CommunityPosts> getAdminPage(Integer pageNum, Integer pageSize, Integer postType, AuditStatus status, String content, String startDate, String endDate) {
@@ -177,68 +179,86 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
     }
 
 
-    /**
-     * 2. 获取个性化推荐动态
-     */
     @Override
     public List<CommunityPosts> getRecommendedPosts(Long userId) {
-        boolean isColdStart = true;
-        List<String> petBreeds = new ArrayList<>();
-        List<KeywordWeight> keywordWeights = new ArrayList<>();
+        // 1. 构建“用户兴趣描述文本”
+        StringBuilder userInterestText = new StringBuilder();
 
         if (userId != null) {
-            // 获取宠物特征
-            List<org.project.pet_health.entity.Pets> myPets = petsMapper.selectList(
-                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<org.project.pet_health.entity.Pets>()
-                            .eq(org.project.pet_health.entity.Pets::getUserId, userId)
-            );
+            // 获取用户的宠物品种偏好
+            List<Pets> myPets = petsMapper.selectList(new LambdaQueryWrapper<Pets>().eq(Pets::getUserId, userId));
+            myPets.forEach(p -> userInterestText.append(petBreedsMapper.selectById(p.getBreedId()).getBreedName()).append(" "));
 
-            if (!myPets.isEmpty()) {
-                isColdStart = false;
-                List<Integer> breedIds = myPets.stream()
-                        .map(org.project.pet_health.entity.Pets::getBreedId)
-                        .filter(java.util.Objects::nonNull)
-                        .distinct()
-                        .collect(java.util.stream.Collectors.toList());
-
-                if (!breedIds.isEmpty()) {
-                    List<org.project.pet_health.entity.PetBreeds> breedsList = petBreedsMapper.selectBatchIds(breedIds);
-                    petBreeds = breedsList.stream()
-                            .map(org.project.pet_health.entity.PetBreeds::getBreedName)
-                            .filter(java.util.Objects::nonNull)
-                            .collect(java.util.stream.Collectors.toList());
-                }
-            }
-
-            // 获取搜索历史（时间衰减）
-            java.time.LocalDateTime sevenDaysAgo = java.time.LocalDateTime.now().minusDays(7);
+            // 获取最近的搜索词
             List<SearchHistoryEntity> histories = searchHistoryMapper.selectList(
-                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SearchHistoryEntity>()
-                            .eq(SearchHistoryEntity::getUserId, userId)
-                            .ge(SearchHistoryEntity::getCreateTime, sevenDaysAgo)
-                            .orderByDesc(SearchHistoryEntity::getCreateTime)
+                    new LambdaQueryWrapper<SearchHistoryEntity>().eq(SearchHistoryEntity::getUserId, userId).last("LIMIT 5")
             );
+            histories.forEach(h -> userInterestText.append(h.getKeyword()).append(" "));
+        }
 
-            if (!histories.isEmpty()) {
-                isColdStart = false;
-                java.util.Map<String, Integer> weightMap = new java.util.HashMap<>();
-                for (SearchHistoryEntity history : histories) {
-                    if (!weightMap.containsKey(history.getKeyword())) {
-                        long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(history.getCreateTime(), java.time.LocalDateTime.now());
-                        int weight = Math.max(1, 5 - (int) daysBetween);
-                        weightMap.put(history.getKeyword(), weight);
-                    }
-                }
-                weightMap.forEach((k, w) -> keywordWeights.add(new KeywordWeight(k, w)));
+        // 2. 将用户画像转化为“用户向量”
+        List<Double> userVector = aiService.getEmbedding(userInterestText.toString());
+
+        // 3. 获取所有待推荐帖子
+        List<CommunityPosts> allPosts = this.list(new LambdaQueryWrapper<CommunityPosts>().eq(CommunityPosts::getStatus, AuditStatus.APPROVED));
+
+        // 4. 核心：计算每篇帖子与用户的余弦相似度
+        for (CommunityPosts post : allPosts) {
+            if (post.getContentVector() != null) {
+                List<Double> postVector = com.alibaba.fastjson2.JSON.parseArray(post.getContentVector(), Double.class);
+                post.setSimilarityScore(calculateCosineSimilarity(userVector, postVector));
+            } else {
+                post.setSimilarityScore(0.0);
             }
         }
 
-        // 调用 Mapper 执行动态 SQL 查询 (注意最后一个参数传入了枚举)
-        return communityPostsMapper.selectRecommendedPosts(
-                isColdStart,
-                petBreeds,
-                keywordWeights,
-                org.project.pet_health.enums.AuditStatus.APPROVED // 👈 新增的枚举参数
-        );
+        // 5. 综合排序：相似度占 80% 权重，点赞数占 20% 权重
+        return allPosts.stream()
+                .sorted((p1, p2) -> {
+                    double score1 = p1.getSimilarityScore() * 100 + p1.getLikeCount();
+                    double score2 = p2.getSimilarityScore() * 100 + p2.getLikeCount();
+                    return Double.compare(score2, score1); // 降序
+                })
+                .limit(20)
+                .peek(post -> {
+                    // 别忘了填充你之前做的昵称和头像
+                    Users user = usersMapper.selectById(post.getUserId());
+                    if(user != null) {
+                        post.setNickname(user.getNickname());
+                        post.setAvatar(user.getAvatarUrl());
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean save(CommunityPosts entity) {
+        // 1. 获取文本的语义向量
+        try {
+            java.util.List<Double> vector = aiService.getEmbedding(entity.getContent());
+            if (vector != null && !vector.isEmpty()) {
+                // 使用 fastjson2 将数组转为 JSON 字符串存入
+                entity.setContentVector(com.alibaba.fastjson2.JSON.toJSONString(vector));
+            }
+        } catch (Exception e) {
+            log.error("AI 向量化失败，但不影响帖子发布", e);
+        }
+        // 2. 调用原有的保存逻辑
+        return super.save(entity);
+    }
+
+
+    /**
+     * 辅助方法：余弦相似度数学公式实现
+     */
+    private double calculateCosineSimilarity(List<Double> vecA, List<Double> vecB) {
+        if (vecA == null || vecB == null || vecA.size() != vecB.size() || vecA.isEmpty()) return 0;
+        double dotProduct = 0.0, normA = 0.0, normB = 0.0;
+        for (int i = 0; i < vecA.size(); i++) {
+            dotProduct += vecA.get(i) * vecB.get(i);
+            normA += Math.pow(vecA.get(i), 2);
+            normB += Math.pow(vecB.get(i), 2);
+        }
+        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
     }
 }

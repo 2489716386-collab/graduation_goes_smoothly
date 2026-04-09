@@ -24,7 +24,7 @@ public class CarePlansDayController {
     @Autowired
     private CarePlansDayService carePlansDayService;
 
-    // 👇 1. 获取今日任务列表 (已取消百分比 DTO)
+    // 👇 1. 获取今日任务列表
     @GetMapping("/today-plan/{petId}")
     public Result<List<CarePlansDayEntity>> getTodayPlan(@PathVariable Long petId) {
         List<CarePlansDayEntity> tasks = carePlansDayService.getTodayTasks(petId);

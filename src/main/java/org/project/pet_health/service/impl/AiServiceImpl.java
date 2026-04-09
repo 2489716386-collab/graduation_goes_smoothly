@@ -23,6 +23,12 @@ public class AiServiceImpl implements AiService {
     @Value("${deepseek.api-url}")
     private String apiUrl;
 
+    @org.springframework.beans.factory.annotation.Value("${ai.embedding.api-key}")
+    private String embeddingApiKey;
+
+    @org.springframework.beans.factory.annotation.Value("${ai.embedding.url}")
+    private String embeddingUrl;
+
     // 👇 终极修改 1：全面拉长超时时间！大模型生成很慢，必须给足耐心
     private final OkHttpClient client = new OkHttpClient.Builder()
             .connectTimeout(60, TimeUnit.SECONDS) // 连接服务器的超时时间
@@ -77,5 +83,62 @@ public class AiServiceImpl implements AiService {
             log.error("💥 解析 AI 响应失败或其它异常", e);
             throw new UserException("AI 响应解析失败");
         }
+    }
+
+    /**
+     * 获取文本的语义向量 (调用阿里云 DashScope Embedding API)
+     */
+    @Override
+    public java.util.List<Double> getEmbedding(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+
+        try {
+            // 1. 使用 Fastjson2 构造阿里云 API 要求的请求体
+            com.alibaba.fastjson2.JSONObject payload = new com.alibaba.fastjson2.JSONObject();
+            payload.put("model", "text-embedding-v1"); // 指定阿里云的通用文本向量模型
+
+            com.alibaba.fastjson2.JSONObject input = new com.alibaba.fastjson2.JSONObject();
+            input.put("texts", new String[]{text}); // 传入需要向量化的文本
+            payload.put("input", input);
+
+            // 2. 使用 OkHttp3 发送 POST 请求
+            okhttp3.Request request = new okhttp3.Request.Builder()
+                    .url(embeddingUrl)
+                    .addHeader("Authorization", "Bearer " + embeddingApiKey)
+                    .addHeader("Content-Type", "application/json")
+                    .post(okhttp3.RequestBody.create(payload.toJSONString(), okhttp3.MediaType.parse("application/json; charset=utf-8")))
+                    .build();
+
+            // 3. 执行请求并解析响应
+            try (okhttp3.Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    String errorMsg = response.body() != null ? response.body().string() : "无详细错误";
+                    log.error("❌ 向量 API 请求失败! 状态码: {}, 错误信息: {}", response.code(), errorMsg);
+                    return new java.util.ArrayList<>();
+                }
+
+                // 使用 Fastjson2 解析返回的 JSON 结果
+                String responseBody = response.body().string();
+                com.alibaba.fastjson2.JSONObject resultJson = com.alibaba.fastjson2.JSON.parseObject(responseBody);
+                com.alibaba.fastjson2.JSONObject output = resultJson.getJSONObject("output");
+
+                // 提取嵌套结构中的向量数组: {"output": {"embeddings": [{"embedding": [0.1, 0.2, ...]}]}}
+                if (output != null && output.containsKey("embeddings")) {
+                    com.alibaba.fastjson2.JSONObject firstEmbedding = output.getJSONArray("embeddings").getJSONObject(0);
+                    com.alibaba.fastjson2.JSONArray embeddingArray = firstEmbedding.getJSONArray("embedding");
+
+                    // 将 JSON 数组直接转为 Java 的 List<Double>
+                    if (embeddingArray != null) {
+                        return embeddingArray.toList(Double.class);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("💥 获取文本语义向量时发生网络或解析异常", e);
+        }
+
+        return new java.util.ArrayList<>();
     }
 }

@@ -42,3 +42,9 @@ deepseek:
 
 python:
   api-url: http://127.0.0.1:8000/predict_emotion
+
+# AI 语义向量 API 配置 (阿里云百炼)
+ai:
+  embedding:
+    api-key: "sk-2740d2109dca4886834fcce9d854c794" # 👈 你的专属 Key
+    url: "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding"
