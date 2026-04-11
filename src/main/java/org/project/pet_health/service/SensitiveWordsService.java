@@ -8,4 +8,6 @@ import java.util.List;
 public interface SensitiveWordsService extends IService<SensitiveWords> {
     Page<SensitiveWords> getAdminPage(Integer pageNum, Integer pageSize, String word);
     void batchDeleteWords(List<Long> ids);
+
+    void refreshDFA();
 }

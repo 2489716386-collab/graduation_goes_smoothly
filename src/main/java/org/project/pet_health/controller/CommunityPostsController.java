@@ -12,6 +12,7 @@ import org.project.pet_health.enums.AuditStatus;
 import org.project.pet_health.service.CommunityPostsService;
 import org.project.pet_health.service.UsersService;
 import org.project.pet_health.utils.JwtUtil;
+import org.project.pet_health.utils.SensitiveWordFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +28,9 @@ public class CommunityPostsController {
 
     @Autowired
     private UsersService usersService;
+
+    @Autowired
+    private SensitiveWordFilter sensitiveWordFilter;
 
 
     @GetMapping("/admin/page")
@@ -65,6 +69,14 @@ public class CommunityPostsController {
     @Operation(summary = "【小程序】发布新动态")
     public Result addPost(@RequestBody CommunityPosts post, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("currentUserId");
+
+        // ================= DFA 脱敏拦截开始 =================
+        if (post.getContent() != null) {
+            String cleanContent = sensitiveWordFilter.replaceSensitiveWord(post.getContent());
+            post.setContent(cleanContent);
+        }
+        // ================= DFA 脱敏拦截结束 =================
+
         postsService.addUserPost(post, userId);
         return Result.success("发布成功");
     }

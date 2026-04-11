@@ -50,4 +50,11 @@ public class SensitiveWordsController {
         sensitiveWordsService.batchDeleteWords(ids);
         return Result.success("批量删除成功");
     }
+
+    @GetMapping("/admin/refresh")
+    @Operation(summary = "手动刷新敏感词缓存")
+    public Result refresh() {
+        sensitiveWordsService.refreshDFA(); // 需要你在接口中声明过这个方法
+        return Result.success("缓存同步成功");
+    }
 }

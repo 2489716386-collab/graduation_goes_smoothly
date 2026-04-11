@@ -9,6 +9,7 @@ import org.project.pet_health.dto.CommentDTO;
 import org.project.pet_health.entity.Comments;
 import org.project.pet_health.enums.AuditStatus;
 import org.project.pet_health.service.CommentsService;
+import org.project.pet_health.utils.SensitiveWordFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +22,9 @@ public class CommentsController {
 
     @Autowired
     private CommentsService commentsService;
+
+    @Autowired
+    private SensitiveWordFilter sensitiveWordFilter;
 
     @GetMapping("/admin/page")
     @Operation(summary = "后台分页条件查询评论")
@@ -61,6 +65,14 @@ public class CommentsController {
     @Operation(summary = "【小程序】发表评论/回复")
     public Result add(@RequestBody Comments comment, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("currentUserId");
+
+        // ================= DFA 脱敏拦截开始 =================
+        if (comment.getContent() != null) {
+            String cleanContent = sensitiveWordFilter.replaceSensitiveWord(comment.getContent());
+            comment.setContent(cleanContent);
+        }
+        // ================= DFA 脱敏拦截结束 =================
+
         commentsService.postComment(comment, userId);
         return Result.success("发表成功");
     }
