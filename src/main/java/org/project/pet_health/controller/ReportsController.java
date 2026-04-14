@@ -3,6 +3,7 @@ package org.project.pet_health.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.project.pet_health.common.AdminAPI;
 import org.project.pet_health.common.Result;
 import org.project.pet_health.entity.Reports;
 import org.project.pet_health.service.ReportsService;
@@ -19,6 +20,7 @@ public class ReportsController {
 
     @GetMapping("/admin/page")
     @Operation(summary = "分页条件查询举报记录")
+    @AdminAPI
     public Result adminPage(@RequestParam(defaultValue = "1") Integer pageNum,
                             @RequestParam(defaultValue = "20") Integer pageSize,
                             @RequestParam(required = false) String targetType,

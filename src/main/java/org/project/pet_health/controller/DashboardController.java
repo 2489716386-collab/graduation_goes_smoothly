@@ -1,6 +1,7 @@
 package org.project.pet_health.controller;
 
 import jakarta.annotation.Resource;
+import org.project.pet_health.common.AdminAPI;
 import org.project.pet_health.common.Result;
 import org.project.pet_health.dto.DashboardStatsDTO;
 import org.project.pet_health.dto.TrendDTO;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/dashboard")
+@AdminAPI
 public class DashboardController {
 
     @Resource

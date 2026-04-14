@@ -174,18 +174,47 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         Users user = this.getOne(new LambdaQueryWrapper<Users>().eq(Users::getOpenid, openid));
 
 // 4. 如果是新用户，自动注册
-        if (user == null) {
+        if (user != null) {
+            // 【核心拦截】如果是管理员，禁止通过微信进入移动端
+            if ("admin".equals(user.getRole())) {
+                throw new UserException("管理员账号请前往PC后台管理系统！");
+            }
+        } else {
+            // 新用户注册逻辑保持不变
             user = new Users();
             user.setOpenid(openid);
-            user.setNickname("微信用户"); // 默认昵称
-            user.setRole("user");       // 默认角色
-            // 修改点1：这里使用 Yes，完全匹配你的 StatusType 枚举
+            user.setNickname("微信用户");
+            user.setRole("user");
             user.setStatus(StatusType.Yes);
             this.save(user);
         }
 
         // 5. 生成 JWT Token 返回给前端
         // 修改点2：直接调用你 JwtUtil 里的 generateToken 方法，传入 user 实体即可
+        return JwtUtil.generateToken(user);
+    }
+
+    //新增账号密码登录（移动端测试用），不涉及 openid，强制校验 role
+    @Override
+    public String userLogin(AdminLoginDTO loginDTO) {
+        // 根据用户名查询
+        Users user = this.getOne(new LambdaQueryWrapper<Users>()
+                .eq(Users::getUsername, loginDTO.getUsername())
+                .last("limit 1")
+        );
+
+        if (user == null) throw new UserException("账号不存在！");
+        if (!loginDTO.getPassword().equals(user.getPassword())) throw new UserException("密码错误！");
+
+        // 【核心拦截】账号登录移动端时，必须校验 role 字段是否为 user
+        if (!"user".equals(user.getRole())) {
+            throw new UserException("权限不足：该账号为管理员账号，请登录管理后台！");
+        }
+
+        if (user.getStatus() != null && user.getStatus().equals(StatusType.No)) {
+            throw new UserException("该账号已被冻结！");
+        }
+
         return JwtUtil.generateToken(user);
     }
 

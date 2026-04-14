@@ -2,12 +2,14 @@ package org.project.pet_health.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.project.pet_health.common.AdminAPI;
 import org.project.pet_health.common.Result;
 import org.project.pet_health.common.annotation.LogAction;
 import org.project.pet_health.entity.PetBreeds;
 import org.project.pet_health.service.PetBreedsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
@@ -30,6 +32,7 @@ public class PetBreedsController {
     @PostMapping("/admin/add")
     @Operation(summary = "增加宠物品种")
     @LogAction("增加了宠物品种字典: #{#petBreeds.breedName}")
+    @AdminAPI
     public Result add(@RequestBody PetBreeds petBreeds) {
         petBreedsService.save(petBreeds);
         return Result.success("新增品种成功");
@@ -38,6 +41,7 @@ public class PetBreedsController {
     @PostMapping("/admin/delete")
     @Operation(summary = "批量删除宠物品种")
     @LogAction("执行了批量删除宠物品种操作")
+    @AdminAPI
     public Result batchDelete(@RequestBody List<Integer> ids) {
         petBreedsService.removeByIds(ids);
         return Result.success("批量删除品种成功");
@@ -46,6 +50,7 @@ public class PetBreedsController {
     @PutMapping("/admin/update")
     @Operation(summary = "修改宠物品种")
     @LogAction("修改了宠物品种字典: #{#petBreeds.breedName}")
+    @AdminAPI
     public Result update(@RequestBody PetBreeds petBreeds) {
         petBreedsService.updateById(petBreeds);
         return Result.success("修改品种成功");

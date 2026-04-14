@@ -3,6 +3,7 @@ package org.project.pet_health.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import org.project.pet_health.common.AdminAPI;
 import org.project.pet_health.common.Result;
 import org.project.pet_health.common.annotation.LogAction;
 import org.project.pet_health.dto.CommentDTO;
@@ -28,6 +29,7 @@ public class CommentsController {
 
     @GetMapping("/admin/page")
     @Operation(summary = "后台分页条件查询评论")
+    @AdminAPI
     public Result adminPage(@RequestParam(defaultValue = "1") Integer pageNum,
                             @RequestParam(defaultValue = "20") Integer pageSize,
                             @RequestParam(required = false) AuditStatus status,
@@ -39,6 +41,7 @@ public class CommentsController {
 
     @PostMapping("/admin/audit")
     @Operation(summary = "批量审核评论(修改状态并联动举报表)")
+    @AdminAPI
     @LogAction("审核了动态评论,评论id：#{#commentIds}，目标状态为: #{#status.desc}")
     public Result batchAudit(@RequestParam AuditStatus status, @RequestBody List<Long> commentIds) {
         commentsService.batchAuditComments(commentIds, status);

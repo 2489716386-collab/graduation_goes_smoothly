@@ -100,6 +100,7 @@ public class JwtUtil {
         Map<String, Object> map = new HashMap<>();
         map.put("userId", users.getUserId());
         map.put("username", users.getUsername());
+        map.put("role", users.getRole()); // 把角色存入 token
         // 如果需要 openId，可以加参数传入
         // map.put("openId", openId);
         // map.put("sub", openId);

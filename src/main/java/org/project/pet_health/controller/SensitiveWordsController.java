@@ -2,17 +2,20 @@ package org.project.pet_health.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.project.pet_health.common.AdminAPI;
 import org.project.pet_health.common.Result;
 import org.project.pet_health.common.annotation.LogAction;
 import org.project.pet_health.entity.SensitiveWords;
 import org.project.pet_health.service.SensitiveWordsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("/sensitive-words")
 @Tag(name = "PC后台-敏感词管理")
+@AdminAPI
 public class SensitiveWordsController {
 
     @Autowired

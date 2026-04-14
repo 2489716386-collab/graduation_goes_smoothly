@@ -45,7 +45,7 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
         LambdaQueryWrapper<CommunityPosts> wrapper = new LambdaQueryWrapper<>();
 
         // 【核心】过滤掉 media_urls 字段不查询，减少宽带消耗
-        wrapper.select(CommunityPosts.class, info -> !info.getColumn().equals("media_urls"));
+        //wrapper.select(CommunityPosts.class, info -> !info.getColumn().equals("media_urls"));
 
         if (postType != null) wrapper.eq(CommunityPosts::getPostType, postType);
         if (status != null) wrapper.eq(CommunityPosts::getStatus, status);

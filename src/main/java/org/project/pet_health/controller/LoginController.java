@@ -38,6 +38,16 @@ public class LoginController {
         return Result.success(result);
     }
 
+    // LoginController.java
+
+    @PostMapping("/user-login")
+    @Operation(summary = "【小程序】测试账号登录")
+    public Result userLogin(@RequestBody AdminLoginDTO loginDTO) {
+        // 调用 Service 中新增的 userLogin 方法
+        String token = usersService.userLogin(loginDTO);
+        return Result.success(Map.of("token", token));
+    }
+
     @PostMapping("/admin-login")
     @Operation(summary = "【PC后台】管理员账号密码登录")
     public Result adminLogin(@RequestBody AdminLoginDTO loginDTO) {

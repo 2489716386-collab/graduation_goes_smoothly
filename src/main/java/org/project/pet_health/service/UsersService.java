@@ -24,6 +24,7 @@ public interface UsersService extends IService<Users> {
 
     // 新增：微信小程序登录方法
     String wxLogin(String code);
+    String userLogin(AdminLoginDTO loginDTO);
 
     /**
      * 获取用户的统计数据（动态数、获赞数等）

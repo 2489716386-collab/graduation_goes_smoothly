@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import org.project.pet_health.common.AdminAPI;
 import org.project.pet_health.common.Result;
 import org.project.pet_health.common.annotation.LogAction;
 import org.project.pet_health.entity.CommunityPosts;
@@ -35,6 +36,7 @@ public class CommunityPostsController {
 
     @GetMapping("/admin/page")
     @Operation(summary = "【PC】后台分页条件查询社区动态(不含图片URL)")
+    @AdminAPI
     public Result adminPage(@RequestParam(defaultValue = "1") Integer pageNum,
                             @RequestParam(defaultValue = "20") Integer pageSize,
                             @RequestParam(required = false) Integer postType,
@@ -51,6 +53,7 @@ public class CommunityPostsController {
     @Operation(summary = "【PC】批量审核动态(修改状态并联动举报表)")
     // 使用 SpEL 表达式动态记录将帖子改成了什么状态
     @LogAction("审核了社区动态，动态id:#{#postIds}，目标状态为: #{#status.desc}")
+    @AdminAPI
     public Result batchAudit(@RequestParam AuditStatus status, @RequestBody List<Long> postIds) {
 
         // 核心跨表修改逻辑已下沉到 Service 层的 batchAuditPosts 方法中

@@ -2,6 +2,7 @@ package org.project.pet_health.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.project.pet_health.common.AdminAPI;
 import org.project.pet_health.common.Result;
 import org.project.pet_health.common.annotation.LogAction;
 import org.project.pet_health.service.UserBlacklistService;
@@ -13,6 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/user-blacklist")
 @Tag(name = "PC后台-黑名单管理")
+@AdminAPI
 public class UserBlacklistController {
 
     @Autowired
