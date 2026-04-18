@@ -74,26 +74,30 @@ public class ReportsServiceImpl extends ServiceImpl<ReportsMapper, Reports> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void addUserReport(Reports report) {
-        // 1. 使用枚举：保存用户的举报记录，默认状态为 0-待处理
         report.setStatus(ReportStatus.PENDING);
         this.save(report);
 
-        // 2. 使用枚举判断类型，反向增加动态或评论的 report_count
         if (TargetType.POST.equals(report.getTargetType())) {
             CommunityPosts post = postsMapper.selectById(report.getTargetId());
             if (post != null) {
-                post.setReportCount(post.getReportCount() + 1);
+                // 防御性编程：防止 null 导致的空指针异常
+                int currentCount = post.getReportCount() == null ? 0 : post.getReportCount();
+                post.setReportCount(currentCount + 1);
+
                 if (post.getReportCount() >= 5) {
-                    post.setStatus(AuditStatus.PENDING); // 帖子变为待审核
+                    post.setStatus(AuditStatus.PENDING);
                 }
                 postsMapper.updateById(post);
             }
         } else if (TargetType.COMMENT.equals(report.getTargetType())) {
             Comments comment = commentsMapper.selectById(report.getTargetId());
             if (comment != null) {
-                comment.setReportCount(comment.getReportCount() + 1);
+                // 防御性编程：防止 null 导致的空指针异常
+                int currentCount = comment.getReportCount() == null ? 0 : comment.getReportCount();
+                comment.setReportCount(currentCount + 1);
+
                 if (comment.getReportCount() >= 5) {
-                    comment.setStatus(AuditStatus.PENDING); // 评论变为待审核
+                    comment.setStatus(AuditStatus.PENDING);
                 }
                 commentsMapper.updateById(comment);
             }

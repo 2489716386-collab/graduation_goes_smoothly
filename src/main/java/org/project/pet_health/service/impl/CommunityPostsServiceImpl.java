@@ -12,6 +12,7 @@ import org.project.pet_health.enums.TargetType;
 import org.project.pet_health.mapper.*;
 import org.project.pet_health.service.AiService;
 import org.project.pet_health.service.CommunityPostsService;
+import org.project.pet_health.utils.SensitiveWordFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,9 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
 
     @Resource
     private AiService aiService; // 注入你刚改好的 AI 服务
+
+    @Autowired
+    private SensitiveWordFilter sensitiveWordFilter;
 
     @Override
     public Page<CommunityPosts> getAdminPage(Integer pageNum, Integer pageSize, Integer postType, AuditStatus status, String content, String startDate, String endDate) {
@@ -87,9 +91,16 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
     @Override
     public void addUserPost(CommunityPosts post, Long userId) {
         post.setUserId(userId);
-        // 使用我们之前定义好的枚举：默认状态为已发布
-        // TODO: 如果你接了敏感词过滤接口，可以在这里判断，有敏感词就置为 PENDING
+
+        // 1. 经过 DFA 算法过滤敏感词，将敏感词替换为 *
+        if (StringUtils.hasText(post.getContent())) {
+            String filteredContent = sensitiveWordFilter.replaceSensitiveWord(post.getContent());
+            post.setContent(filteredContent);
+        }
+
+        // 2. 无论是否替换过，状态直接标记为已发布
         post.setStatus(AuditStatus.APPROVED);
+
         post.setLikeCount(0);
         post.setCommentCount(0);
         post.setReportCount(0);
@@ -116,12 +127,16 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
     @Override
     public Page<CommunityPosts> getMyPosts(Integer pageNum, Integer pageSize, Long userId) {
         LambdaQueryWrapper<CommunityPosts> wrapper = new LambdaQueryWrapper<>();
-        // 查询当前用户的动态，并按创建时间（或主键ID）倒序排列
-        wrapper.eq(CommunityPosts::getUserId, userId)
-                .orderByDesc(CommunityPosts::getPostId);
-        // 如果你的实体类里有 createTime，也可以用 .orderByDesc(CommunityPosts::getCreateTime)
 
-        return this.page(new Page<>(pageNum, pageSize), wrapper);
+        // 核心条件：查询当前用户的动态
+        wrapper.eq(CommunityPosts::getUserId, userId)
+                // 1. 先按时间倒序排列
+                .orderByDesc(CommunityPosts::getCreateTime)
+                // 2. 关键防重复：加上按 ID 倒序排列（彻底解决分页下滑出现重复数据的 Bug）
+                .orderByDesc(CommunityPosts::getPostId);
+
+        Page<CommunityPosts> page = new Page<>(pageNum, pageSize);
+        return this.page(page, wrapper);
     }
 
 

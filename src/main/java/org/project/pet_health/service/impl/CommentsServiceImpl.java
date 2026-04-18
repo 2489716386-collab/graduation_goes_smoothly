@@ -15,6 +15,7 @@ import org.project.pet_health.enums.TargetType;
 import org.project.pet_health.mapper.CommentsMapper;
 import org.project.pet_health.mapper.ReportsMapper;
 import org.project.pet_health.service.*;
+import org.project.pet_health.utils.SensitiveWordFilter;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,9 @@ public class CommentsServiceImpl extends ServiceImpl<CommentsMapper, Comments> i
     private InteractionNotificationsService noticeService;
     @Autowired
     private CommunityPostsService postsService;
+
+    @Autowired
+    private SensitiveWordFilter sensitiveWordFilter;
 
     @Override
     public Page<Comments> getAdminPage(Integer pageNum, Integer pageSize,AuditStatus status, String content, String startDate, String endDate) {
@@ -191,9 +195,14 @@ public class CommentsServiceImpl extends ServiceImpl<CommentsMapper, Comments> i
         // 1. 补全评论的基础信息
         comment.setUserId(userId);
         comment.setCreateTime(null); // 让数据库自动生成时间
-        comment.setStatus(AuditStatus.APPROVED); // 默认审核通过
+        // 1. 敏感词替换为 *
+        if (StringUtils.hasText(comment.getContent())) {
+            String filteredContent = sensitiveWordFilter.replaceSensitiveWord(comment.getContent());
+            comment.setContent(filteredContent);
+        }
 
-        // 💡 修复1：点赞数必须初始化为0，否则插入数据库会报错
+        comment.setStatus(AuditStatus.APPROVED); // 默认审核通过
+        // 点赞数必须初始化为0，否则插入数据库会报错
         comment.setLikeCount(0);
 
         // 执行保存
