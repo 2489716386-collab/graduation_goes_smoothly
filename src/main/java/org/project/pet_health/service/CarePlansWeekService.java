@@ -16,4 +16,11 @@ import org.project.pet_health.entity.CarePlansWeekEntity;
 public interface CarePlansWeekService extends IService<CarePlansWeekEntity> {
     String generatePreview(PlanGenerateDTO dto);
     void confirmAndImport(PlanImportDTO importDto);
+
+    /**
+     * 获取宠物本周有效的养护计划
+     * @param petId 宠物ID
+     * @return CarePlansWeekEntity 如果本周尚未生成，则返回 null
+     */
+    CarePlansWeekEntity getActivePlan(Long petId);
 }

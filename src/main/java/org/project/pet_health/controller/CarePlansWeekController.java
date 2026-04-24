@@ -47,13 +47,11 @@ public class CarePlansWeekController {
 
     @GetMapping("/current/{petId}")
     public Result<CarePlansWeekEntity> getCurrentPlan(@PathVariable Long petId) {
-        CarePlansWeekEntity currentPlan = weekService.getOne(
-                new LambdaQueryWrapper<CarePlansWeekEntity>()
-                        .eq(CarePlansWeekEntity::getPetId, petId)
-                        .eq(CarePlansWeekEntity::getIsCurrent, 1) // 1代表当前生效的计划
-                        .last("LIMIT 1")
-        );
-        return Result.success(currentPlan);
+        // 调用我们刚刚写好的严格限制本周的方法 (注意你的 service 注入变量名如果是 weekService 就用 weekService)
+        CarePlansWeekEntity plan = weekService.getActivePlan(petId);
+
+        // 直接返回，如果本周没生成，plan 为 null，前端拿到 null 后就会显示"请更新计划"
+        return Result.success(plan);
     }
 
 

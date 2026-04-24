@@ -194,4 +194,20 @@ public class CarePlansWeekServiceImpl extends ServiceImpl<CarePlansWeekMapper, C
         // 批量保存这些每日任务到数据库
         dayService.saveBatch(dayList);
     }
+
+    @Override
+    public CarePlansWeekEntity getActivePlan(Long petId) {
+        // 1. 获取本周一的日期
+        LocalDate monday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+        // 2. 构造查询条件
+        LambdaQueryWrapper<CarePlansWeekEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(CarePlansWeekEntity::getPetId, petId)
+                .eq(CarePlansWeekEntity::getIsCurrent, true) // 确保是最新生成的记录
+                .ge(CarePlansWeekEntity::getStartDate, monday) // 【核心】必须是本周一及之后生成的计划
+                .last("LIMIT 1"); // 只要一条
+
+        // 3. 执行查询并返回结果。如果没有满足条件的（比如这周还没生成），这里会自动返回 null
+        return this.getOne(wrapper);
+    }
 }
