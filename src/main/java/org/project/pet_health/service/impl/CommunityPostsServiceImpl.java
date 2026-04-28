@@ -161,26 +161,81 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
             searchHistoryMapper.insert(history);
         }
 
-        // 2. 构造查询条件 (只查内容 content，且状态为 APPROVED)
-        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<CommunityPosts> wrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-        wrapper.eq(CommunityPosts::getStatus, org.project.pet_health.enums.AuditStatus.APPROVED);
+        // 2. 取出所有状态为已发布的帖子
+        List<CommunityPosts> allPosts = communityPostsMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<CommunityPosts>()
+                        .eq(CommunityPosts::getStatus, org.project.pet_health.enums.AuditStatus.APPROVED)
+        );
 
-        if (org.springframework.util.StringUtils.hasText(keyword)) {
-            wrapper.like(CommunityPosts::getContent, keyword.trim());
+        // 如果没有搜索词，直接按热度或时间返回前20条即可
+        if (!org.springframework.util.StringUtils.hasText(keyword)) {
+            return fallbackToBasicSort(allPosts, sort);
         }
 
-        // 3. 排序
-        if ("time".equals(sort)) {
-            wrapper.orderByDesc(CommunityPosts::getCreateTime);
-        } else {
-            wrapper.last("ORDER BY (like_count * 2 + comment_count * 5) DESC");
+        // 3. 【核心修复】将用户的搜索词转化为向量
+        List<Double> keywordVector = null;
+        try {
+            keywordVector = aiService.getEmbedding(keyword);
+        } catch (Exception e) {
+            log.error("获取搜索词向量失败", e);
         }
 
-        // 4. 执行查询
-        List<CommunityPosts> posts = communityPostsMapper.selectList(wrapper);
+        // 4. 计算所有帖子与搜索词的语义相似度
+        for (CommunityPosts post : allPosts) {
+            if (post.getContentVector() != null && keywordVector != null && !keywordVector.isEmpty()) {
+                List<Double> postVector = com.alibaba.fastjson2.JSON.parseArray(post.getContentVector(), Double.class);
+                post.setSimilarityScore(calculateCosineSimilarity(keywordVector, postVector));
+            } else {
+                // 降级处理：如果没有向量数据，但文本包含关键词，给一个基础及格分保底
+                if (post.getContent() != null && post.getContent().contains(keyword)) {
+                    post.setSimilarityScore(0.5);
+                } else {
+                    post.setSimilarityScore(0.0);
+                }
+            }
+        }
 
-        // 5. 【核心修复】手动关联查询用户信息（昵称和头像）
-        if (!posts.isEmpty()) {
+        // 5. 根据相似度过滤并排序
+        List<CommunityPosts> resultPosts = allPosts.stream()
+                // 过滤掉完全不相关的帖子（相似度低于0.15视作不相关，可根据实际效果微调）
+                .filter(p -> p.getSimilarityScore() > 0.15)
+                .sorted((p1, p2) -> {
+                    if ("time".equals(sort)) {
+                        // 按时间倒序
+                        return p2.getCreateTime().compareTo(p1.getCreateTime());
+                    } else {
+                        // 【改进后的权重公式】：语义相似度(0~1)放大1000倍作为基础分，点赞数取对数后乘以10作为加权分
+                        // 这样点赞数再高也不会超过相似度的决定性作用
+                        double score1 = p1.getSimilarityScore() * 1000 + Math.log10(p1.getLikeCount() + 1) * 10;
+                        double score2 = p2.getSimilarityScore() * 1000 + Math.log10(p2.getLikeCount() + 1) * 10;
+                        return Double.compare(score2, score1); // 降序
+                    }
+                })
+                .limit(20) // 取前20条
+                .collect(Collectors.toList());
+
+        // 6. 手动关联查询用户信息
+        fillUserInfo(resultPosts);
+
+        return resultPosts;
+    }
+
+    // 辅助方法：当没有搜索词时，退化为基础的热度/时间排序
+    private List<CommunityPosts> fallbackToBasicSort(List<CommunityPosts> posts, String sort) {
+        List<CommunityPosts> sortedPosts = posts.stream().sorted((p1, p2) -> {
+            if ("time".equals(sort)) {
+                return p2.getCreateTime().compareTo(p1.getCreateTime());
+            } else {
+                return Integer.compare(p2.getLikeCount() * 2 + p2.getCommentCount() * 5, p1.getLikeCount() * 2 + p1.getCommentCount() * 5);
+            }
+        }).limit(20).collect(Collectors.toList());
+        fillUserInfo(sortedPosts);
+        return sortedPosts;
+    }
+
+    // 辅助方法：填充用户信息
+    private void fillUserInfo(List<CommunityPosts> posts) {
+        if (posts != null && !posts.isEmpty()) {
             for (CommunityPosts post : posts) {
                 org.project.pet_health.entity.Users user = usersMapper.selectById(post.getUserId());
                 if (user != null) {
@@ -189,8 +244,6 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
                 }
             }
         }
-
-        return posts;
     }
 
 
@@ -202,7 +255,12 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
         if (userId != null) {
             // 获取用户的宠物品种偏好
             List<Pets> myPets = petsMapper.selectList(new LambdaQueryWrapper<Pets>().eq(Pets::getUserId, userId));
-            myPets.forEach(p -> userInterestText.append(petBreedsMapper.selectById(p.getBreedId()).getBreedName()).append(" "));
+            myPets.forEach(p -> {
+                PetBreeds breed = petBreedsMapper.selectById(p.getBreedId());
+                if(breed != null) {
+                    userInterestText.append(breed.getBreedName()).append(" ");
+                }
+            });
 
             // 获取最近的搜索词
             List<SearchHistoryEntity> histories = searchHistoryMapper.selectList(
@@ -212,10 +270,27 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
         }
 
         // 2. 将用户画像转化为“用户向量”
-        List<Double> userVector = aiService.getEmbedding(userInterestText.toString());
+        List<Double> userVector = null;
+        if (userInterestText.length() > 0) {
+            try {
+                userVector = aiService.getEmbedding(userInterestText.toString());
+            } catch (Exception e) {
+                log.error("AI 向量化用户兴趣失败", e);
+            }
+        }
 
         // 3. 获取所有待推荐帖子
         List<CommunityPosts> allPosts = this.list(new LambdaQueryWrapper<CommunityPosts>().eq(CommunityPosts::getStatus, AuditStatus.APPROVED));
+
+        // 如果用户是完全的“白板”（没宠物也没搜索历史），退化为纯热度大盘推荐
+        if (userVector == null || userVector.isEmpty()) {
+            List<CommunityPosts> hotPosts = allPosts.stream()
+                    .sorted((p1, p2) -> Integer.compare(p2.getLikeCount() * 2 + p2.getCommentCount() * 5, p1.getLikeCount() * 2 + p1.getCommentCount() * 5))
+                    .limit(20)
+                    .collect(Collectors.toList());
+            fillUserInfo(hotPosts);
+            return hotPosts;
+        }
 
         // 4. 核心：计算每篇帖子与用户的余弦相似度
         for (CommunityPosts post : allPosts) {
@@ -227,23 +302,22 @@ public class CommunityPostsServiceImpl extends ServiceImpl<CommunityPostsMapper,
             }
         }
 
-        // 5. 综合排序：相似度占 80% 权重，点赞数占 20% 权重
-        return allPosts.stream()
+        // 5. 【修改核心权重】：相似度占绝对主导，点赞数做对数降维后作为辅助加权分
+        List<CommunityPosts> recommendedPosts = allPosts.stream()
                 .sorted((p1, p2) -> {
-                    double score1 = p1.getSimilarityScore() * 100 + p1.getLikeCount();
-                    double score2 = p2.getSimilarityScore() * 100 + p2.getLikeCount();
+                    // 相似度(0~1) * 1000 + log10(点赞数+1) * 20
+                    // 加1是为了避免 log10(0) 报错负无穷
+                    double score1 = p1.getSimilarityScore() * 1000 + Math.log10(p1.getLikeCount() + 1) * 20;
+                    double score2 = p2.getSimilarityScore() * 1000 + Math.log10(p2.getLikeCount() + 1) * 20;
                     return Double.compare(score2, score1); // 降序
                 })
                 .limit(20)
-                .peek(post -> {
-                    // 别忘了填充你之前做的昵称和头像
-                    Users user = usersMapper.selectById(post.getUserId());
-                    if(user != null) {
-                        post.setNickname(user.getNickname());
-                        post.setAvatar(user.getAvatarUrl());
-                    }
-                })
                 .collect(Collectors.toList());
+
+        // 填充用户信息
+        fillUserInfo(recommendedPosts);
+
+        return recommendedPosts;
     }
 
     @Override
