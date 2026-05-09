@@ -103,7 +103,7 @@ public class CarePlansWeekServiceImpl extends ServiceImpl<CarePlansWeekMapper, C
                 "1. 请仅生成从 " + today + " 到 " + nextSunday + " 每天的任务，不要生成其他日期的任务。\n" +
                 "2. 每天可以包含多条不同 category 的任务，确保覆盖宠物近况中提到的问题。";
 
-        // 6. 构造用户提示词 (User Prompt) - 使用查询到的真实数据
+        // 6. 构造用户提示词 (User Prompt)
         StringBuilder userPrompt = new StringBuilder();
         userPrompt.append(String.format("宠物信息：品种-%s，年龄-%d岁，体重-%skg，健康现状-%s。",
                 breedName, age, pet.getWeight(), dto.getHealthStatus()));
@@ -130,7 +130,7 @@ public class CarePlansWeekServiceImpl extends ServiceImpl<CarePlansWeekMapper, C
         PlanGenerateDTO snapshot = dto.getSnapshot();
         Long petId = snapshot.getPetId();
 
-        // 先查出这只宠物，主要为了拿 user_id，顺便更新体重
+        // 先查出这只宠物，主要为了拿 user_id，更新体重
         Pets pet = petsService.getById(petId);
         if (pet == null) {
             throw new UserException("宠物不存在");
@@ -145,7 +145,7 @@ public class CarePlansWeekServiceImpl extends ServiceImpl<CarePlansWeekMapper, C
                 .eq(CarePlansWeekEntity::getPetId, petId)
                 .set(CarePlansWeekEntity::getIsCurrent, 0));
 
-        // --- ③ 保存新的周计划快照 ---
+        // --- ③ 保存新的周计划 ---
         JSONObject aiJson = JSON.parseObject(dto.getAiResultJson());
         CarePlansWeekEntity weekPlan = new CarePlansWeekEntity();
         weekPlan.setPetId(petId);
@@ -157,35 +157,36 @@ public class CarePlansWeekServiceImpl extends ServiceImpl<CarePlansWeekMapper, C
         weekPlan.setSnapshotHealthStatus(snapshot.getHealthStatus());
         weekPlan.setWeeklyFocus(aiJson.getString("weekly_focus"));
 
-        // 👇 【核心修改 1】：动态计算这周日的日期
+        // 动态计算这周日的日期
         LocalDate today = LocalDate.now();
         LocalDate thisSunday = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
 
+        // 保存主表
         weekPlan.setStartDate(today);
         weekPlan.setEndDate(thisSunday); // 结束日期固定为本周日
         weekPlan.setIsCurrent(true);     // 设为当前生效计划
         this.save(weekPlan);             // 保存主表，MyBatis-Plus 会自动将生成的 ID 回填给 weekPlan
 
         // --- ④ 任务裂变：直接读取 AI 返回的日期并保存 ---
-        JSONArray dailyTasks = aiJson.getJSONArray("daily_tasks");
+        JSONArray dailyTasks = aiJson.getJSONArray("daily_tasks");//提取 JSON 中的 daily_tasks 数组
         List<CarePlansDayEntity> dayList = new ArrayList<>();
 
         if (dailyTasks != null) {
-            // 👇 【核心修改 2】：去掉双重嵌套循环！直接遍历 AI 返回的任务数组即可
+            // 去掉双重嵌套循环！直接遍历 AI 返回的任务数组即可
             for (int i = 0; i < dailyTasks.size(); i++) {
                 JSONObject taskObj = dailyTasks.getJSONObject(i);
                 CarePlansDayEntity dayTask = new CarePlansDayEntity();
 
-                dayTask.setWeekPlanId(weekPlan.getId()); // 关联刚才生成的周计划主键 ID
+                dayTask.setWeekPlanId(weekPlan.getId()); // 关联刚才生成的周计划主键 ID，立起经典的主从表（一对多）关联
                 dayTask.setPetId(petId);
 
                 // 直接解析大模型在 JSON 里返回的 "date" 字段 (格式为 YYYY-MM-DD)
-                LocalDate taskDate = LocalDate.parse(taskObj.getString("date"));
+                LocalDate taskDate = LocalDate.parse(taskObj.getString("date"));//对于每个任务，提取其执行日期（date）
                 dayTask.setPlanDate(taskDate);
                 dayTask.setDayOfWeek(taskDate.getDayOfWeek().getValue());
 
-                dayTask.setTaskCategory(taskObj.getString("category"));
-                dayTask.setTaskContent(taskObj.getString("content"));
+                dayTask.setTaskCategory(taskObj.getString("category"));//类别（category，比如饮食、运动）
+                dayTask.setTaskContent(taskObj.getString("content"));//具体内容（content）
                 dayTask.setIsCompleted(0); // 0代表未打卡
 
                 dayList.add(dayTask);
